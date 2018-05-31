@@ -1,0 +1,22 @@
+@import './variables.css';
+
+@keyframes spinner {
+  to { transform: rotate(360deg) }
+}
+ 
+.spinner:before {
+  content: '';
+  display: inline-block;
+  box-sizing: border-box;
+  /*position: relative;*/
+  /*top: 50%;*/
+  /*left: 50%;*/
+  min-width: 1rem;
+  min-height: 1rem;
+  /*margin-top: -10px;*/
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  border-top: 2px solid var(--color1);
+  border-right: 2px solid transparent;
+  animation: spinner 1s linear infinite;
+}

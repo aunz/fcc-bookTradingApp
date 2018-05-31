@@ -1,0 +1,55 @@
+@import 'normalize.css/normalize.css';
+@import 'basscss/css/basscss.min.css';
+@import './variables.css';
+
+* {
+  color: #333;
+  font-family: sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  padding-bottom: 3rem;
+}
+
+.color1 { color: var(--color1) }
+.color1-l { color: var(--color1-l) }
+.color1-d { color: var(--color1-d) }
+.color-inherit { color: inherit }  /* used in: header */
+.white { color: #fff }
+.silver { color: #aaa }
+.red { color: #FF4136 }
+.bg-color1 { background-color: var(--color1) }
+.bg-currentColor { background-color: currentColor }
+.bg-transparent { background-color: #fff0 }
+
+.border-color1 { border-color: var(--color1) }
+.border-red { border-color: #FF4136 }
+
+.pre { white-space: pre }
+
+.pointer { cursor: pointer }
+.outline-none { outline: none }
+.appearance-none { appearance: none }
+
+.border-color1 { border-color: var(--color1) }
+.border-transparent { border-color: #fff0 }
+.border-currentColor { border-color: currentColor }
+
+
+
+
+
+
+
+.p025 { padding: 0.25rem }  
+
+
+.break-word {
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+
+
+
