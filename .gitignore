@@ -1,7 +1,7 @@
-build/
-dist/
-db/
-.data/
+/build
+/dist
+/db
+/.data
 temp
 tmp
 /.env*
