@@ -1,6 +1,6 @@
 import './db/createTable/createTable'
 import './db/createTable/randomData.test'
-import './entry'
+// import './entry'
 
 
 // import '~/share/cleanUserInput.test'

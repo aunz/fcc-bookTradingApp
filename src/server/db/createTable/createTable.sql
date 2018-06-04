@@ -1,9 +1,8 @@
 create table "user" (
   id int not null primary key, --convert to base36 when sent to client
-  ts int default (strftime('%s','now')), -- created date, timestamp in epoch
+  ts int not null default (strftime('%s','now')), -- created date, timestamp in epoch
   "name" text check(trim(name) <> ''),
   email text not null unique check(trim(email) <> ''), -- all lovercase
-  pt int default 3, -- point, each time the user request a book, pt--, but when the user give a book, pt++, cannot request a book when pt is < 1
   pw blob not null, -- password
   token blob unique, -- hashed token for user authentication, very likely unique
   token_ts int, -- ts when token is created
@@ -12,7 +11,34 @@ create table "user" (
 
 
 /* book
-  1) when a user create a book, populate id, bid, uid, ts
+  1) when a user create a book
+    - in book: populate id, ts and gid
+    - in user_book: popluate bid, which reference book(id), uid, ts
+  2) when a request is made against a book
+    - in book_user: insert a new row with the old bid, uid, then rid, ts
+  3) the owner then decide, in book_user
+    - if grant, update the row in 2) with status: 1 success, then insert a new row with new ts, same bid, uid is now = rid
+    - if declined, update the row in 2) with status: 0 declined
+  3) when owner delete the book, in book_user, insert a new row with bid, ts, but no uid
+
+  ### Query ###
+
+  -- show all current books
+  select * from book_user where uid is not null group by bid
+
+  -- show 
+
+  
+*/
+
+create table book (
+  id int not null primary key,
+  ts int not null default (strftime('%s','now')),
+  gid text not null -- book id, from google book API, this is text
+);
+
+/* book
+  1) when a user create a book, populate id, uid, ts
   2) when this book is requested, populate req
   3) owner make a decision
     a) accept: insert a new row with new id, bid = previous bid, uid = new user id, new ts, status = 1
@@ -46,14 +72,16 @@ create table "user" (
     bid is repeated many times
 */
 
-create table book (
-  id int not null primary key,
-  bid int not null, -- book id, from google book API, this is text
-  uid int not null references "user"(id), -- user who own this book
-  ts int default (strftime('%s','now')),
-  req json, -- request for this book [{ uid, ts }]
-  nid int references book(id),
-  status int, -- 1: success transferred to a new ower, 0: declined
-  del int, -- ts when deleted
-  iid int not null references(id) -- the initial id
+create table book_user (
+  ts int not null default (strftime('%s','now')),
+  bid int not null references book(id),
+  uid int references "user"(id), -- owner, when null, this book has been deleted
+  rid int references "user"(id), -- the user who requests this book,
+  status int, -- null: pending; 1: success, the book will be transferred into owner rid; 0: declined, the book will remain with owner uid
+  check (uid != rid)
 );
+-- create trigger book_user_status
+--   after update of status on book_user
+--   begin
+--     update book_user
+--   end;
