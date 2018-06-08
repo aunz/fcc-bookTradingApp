@@ -4,3 +4,9 @@ init app, boilerplate etc
 20180531  1
 20180602  3
 table schema
+20180603  2
+table schema
+20180604  3
+table schema
+20180606  3
+table schema, trigger for insert and update book_user

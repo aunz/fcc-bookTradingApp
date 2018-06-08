@@ -1,5 +1,4 @@
-import './db/createTable/createTable'
-import './db/createTable/randomData.test'
+import './db/createTable/createTable.test'
 // import './entry'
 
 

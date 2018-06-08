@@ -13,7 +13,7 @@ create table "user" (
 /* book
   1) when a user create a book
     - in book: populate id, ts and gid
-    - in user_book: popluate bid, which reference book(id), uid, ts
+    - in user_book: popluate bid, which reference book(id), uid, ts, rid = uid, status = 1
   2) when a request is made against a book
     - in book_user: insert a new row with the old bid, uid, then rid, ts
   3) the owner then decide, in book_user
@@ -24,9 +24,7 @@ create table "user" (
   ### Query ###
 
   -- show all current books
-  select * from book_user where uid is not null group by bid
-
-  -- show 
+  select * from book_user group by bid
 
   
 */
@@ -37,51 +35,67 @@ create table book (
   gid text not null -- book id, from google book API, this is text
 );
 
-/* book
-  1) when a user create a book, populate id, uid, ts
-  2) when this book is requested, populate req
-  3) owner make a decision
-    a) accept: insert a new row with new id, bid = previous bid, uid = new user id, new ts, status = 1
-       then in the old row, populate nid = new id
-    b) decline: insert a new row with new id, bid = previous bid uid = old uid, new ts, status = 0
-       then in the old row, populate id = new id
-
-  list all current books 
-    select * where nid is null and del it not null
-
-  list all books owned by a user currently
-    select * where nid is null and del it not null and uid == UID group by iid
-
-  list all books owned by a user at all time
-    select * where uid == UID group by iid
-
-  list all current pending transctions
-    select * where nid is null and del is not null and req is not null
-
-  list all transactions requested by user
-    select * where json_tree something uid
-
-  list transction history of a particular book
-    select * where iid == id
-
-  upside:
-    can follow the history of a book transactions
-    multiple users can request the same book
-
-  downside:
-    bid is repeated many times
-*/
-
 create table book_user (
   ts int not null default (strftime('%s','now')),
   bid int not null references book(id),
   uid int references "user"(id), -- owner, when null, this book has been deleted
   rid int references "user"(id), -- the user who requests this book,
-  status int, -- null: pending; 1: success, the book will be transferred into owner rid; 0: declined, the book will remain with owner uid
-  check (uid != rid)
+  status int -- null: pending; 1: the book will be transferred into owner rid; 0: the book will remain with owner uid
 );
--- create trigger book_user_status
---   after update of status on book_user
---   begin
---     update book_user
---   end;
+create trigger book_user_before_insert_new_request
+  before insert on book_user
+  begin  
+    select case
+      when exists (select 1 from book_user where bid == new.bid limit 1) and new.uid is not null and not exists (select 1 from book_user where bid == new.bid and rid == new.uid and status == 1 limit 1) 
+      then raise(abort, 'The book is not owned by the user') end;
+    select case
+      when new.uid == new.rid and new.status is not 1
+      then raise(abort, 'Status has to be 1 when uid and rid are the same') end;
+    select case
+      when new.uid is not new.rid and new.status is not null
+      then raise(abort, 'Status has to be null when uid and rid are different') end;
+    select case
+      when exists (select 1 from book_user where bid == new.bid and uid == new.uid and rid == new.rid and status is null limit 1)
+      then raise(abort, 'This request is in queue') end;
+    select case
+      when new.uid is not null and new.rid is null
+      then raise(abort, 'rid is required when uid is provided') end;
+  end;
+create trigger book_user_before_update
+  before update on book_user
+  begin
+    select case
+      when new.status is null
+      then raise(abort, 'Cannot set status to null') end;
+    select case
+      when old.status is not null
+      then raise(abort, 'Status cannot be changed') end;
+  end;
+create trigger book_user_after_update_status
+  after update of status on book_user
+  begin
+    update book_user set status = 0 where status is null and bid = new.bid and uid = new.uid and rid is not new.rid;
+  end;
+
+
+create table t (
+  id int,
+  item text,
+  status int
+);
+insert into t values  (1, 'A', 1);
+insert into t values  (2, 'A', 1);
+insert into t values  (3, 'A', 0);
+insert into t values  (4, 'B', 0);
+insert into t values  (5, 'B', 1);
+insert into t values  (6, 'A', 0);
+insert into t values  (7, 'A', 1);
+insert into t values  (8, 'B', 1);
+insert into t values  (9, 'A', 1);
+insert into t values (10, 'A', 1);
+insert into t values (11, 'B', 0);
+insert into t values (12, 'B', 0);
+
+-- insert into t values (1, 'A', 0);
+-- insert into t values (2, 'B', 0);
+-- insert into t values (3, 'C', 0);
