@@ -1,9 +1,10 @@
 create table "user" (
   id int not null primary key, --convert to base36 when sent to client
   ts int not null default (strftime('%s','now')), -- created date, timestamp in epoch
-  "name" text check(trim(name) <> ''),
+  "name" text not null check(trim(name) <> ''),
   email text not null unique check(trim(email) <> ''), -- all lovercase
-  pw blob not null, -- password
+  city text,
+  pw text not null, -- password
   token blob unique, -- hashed token for user authentication, very likely unique
   token_ts int, -- ts when token is created
   token_ts_exp int -- ts when token SHOULD be expired
@@ -13,9 +14,9 @@ create table "user" (
 /* book
   1) when a user create a book
     - in book: populate id, ts and gid
-    - in user_book: popluate bid, which reference book(id), uid, ts, rid = uid, status = 1
+    - in user_book: populate bid, which reference book(id), uid, ts, rid = uid, status = 1
   2) when a request is made against a book
-    - in book_user: insert a new row with the old bid, uid, then rid, ts
+    - in book_user: insert a new row with the old bid, uid, then rid, ts, leave status as null
   3) the owner then decide, in book_user
     - if grant, update the row in 2) with status: 1 success, then insert a new row with new ts, same bid, uid is now = rid
     - if declined, update the row in 2) with status: 0 declined
@@ -39,14 +40,25 @@ create table book_user (
   ts int not null default (strftime('%s','now')),
   bid int not null references book(id),
   uid int references "user"(id), -- owner, when null, this book has been deleted
-  rid int references "user"(id), -- the user who requests this book,
+  rid int references "user"(id), -- the user who requests this book, initially this is the same as uid
   status int -- null: pending; 1: the book will be transferred into owner rid; 0: the book will remain with owner uid
 );
+
+create view active_book as
+  select *, max(rowid) as rowid from book_user
+    where status is 1
+    and bid not in
+      (select bid from book_user where uid is null)
+    group by bid;
+
+
 create trigger book_user_before_insert_new_request
   before insert on book_user
+  when new.uid is not null
   begin  
     select case
-      when exists (select 1 from book_user where bid == new.bid limit 1) and new.uid is not null and not exists (select 1 from book_user where bid == new.bid and rid == new.uid and status == 1 limit 1) 
+      when exists (select 1 from book_user where bid == new.bid limit 1)
+        and new.uid != (select rid from book_user where bid == new.bid and status == 1 order by rowid desc limit 1)
       then raise(abort, 'The book is not owned by the user') end;
     select case
       when new.uid == new.rid and new.status is not 1
@@ -61,41 +73,30 @@ create trigger book_user_before_insert_new_request
       when new.uid is not null and new.rid is null
       then raise(abort, 'rid is required when uid is provided') end;
   end;
+create trigger book_user_after_insert_delete
+  after insert on book_user
+  when new.uid is null
+  begin
+    select 1;
+    update book_user set status = 0 where bid = new.bid and status is null; -- has to put uid is null, this will trigger the book_user_after_update_status
+  end;
 create trigger book_user_before_update
   before update on book_user
   begin
+    -- select case
+    --   when new.bid is not null or new.uid is not null or new.rid is not null
+    --   then raise(abort, 'Cannot update bid, uid or rid') end;
     select case
       when new.status is null
       then raise(abort, 'Cannot set status to null') end;
     select case
-      when old.status is not null
+      when old.status is not null and new.status is not old.status
       then raise(abort, 'Status cannot be changed') end;
   end;
 create trigger book_user_after_update_status
   after update of status on book_user
   begin
-    update book_user set status = 0 where status is null and bid = new.bid and uid = new.uid and rid is not new.rid;
+    update book_user set status = 0 where bid = old.bid and status is null;
+    insert into book_user (bid, uid, rid, status) select new.bid, new.rid, new.rid, 1 where new.status = 1;
   end;
 
-
-create table t (
-  id int,
-  item text,
-  status int
-);
-insert into t values  (1, 'A', 1);
-insert into t values  (2, 'A', 1);
-insert into t values  (3, 'A', 0);
-insert into t values  (4, 'B', 0);
-insert into t values  (5, 'B', 1);
-insert into t values  (6, 'A', 0);
-insert into t values  (7, 'A', 1);
-insert into t values  (8, 'B', 1);
-insert into t values  (9, 'A', 1);
-insert into t values (10, 'A', 1);
-insert into t values (11, 'B', 0);
-insert into t values (12, 'B', 0);
-
--- insert into t values (1, 'A', 0);
--- insert into t values (2, 'B', 0);
--- insert into t values (3, 'C', 0);

@@ -1,37 +1,21 @@
 import { createHash } from 'crypto'
+import bcrypt from 'bcrypt'
 import db from './sqlite'
 
-// As an authenticated user, I can keep my polls and come back later to access them.
-// As an authenticated user, I can share my polls with my friends.
-// As an authenticated user, I can see the aggregate results of my polls.
-// As an authenticated user, I can delete polls that I decide I don't want anymore.
-// As an authenticated user, I can create a poll with any number of possible items.
-// As an unauthenticated or authenticated user, I can see and vote on everyone's polls.
-// As an unauthenticated or authenticated user, I can see the results of polls in chart form. (This could be implemented using Chart.js or Google Charts.)
-// As an authenticated user, if I don't like the options on a poll, I can create a new option.
-
-
-// object argument is from user input, so need to clean them
-
-export function createIpUser(ip) {
-  const id = db.prepare('select id from "user" where ip = ?').pluck().get(ip)
-  return id || createEntity('user', { ip })
+export function createUser({ name, email, city = '', pw }) {
+  return bcrypt.hash(pw, 10)
+    .then(hash => {
+      return createEntity('user', { name, email, city, pw: hash })
+    })
 }
 
-export function createAuthUser(provider, id, object = {}) {
-  // provider: email, gh, fb, gg, etc,
-  // object: { name, avatar etc }
-  // for now, provider can only accept gh (GitHub)
-
-  const uid = db.prepare(`select id from "user" where ${provider} = ?`).pluck().get(id)
-  if (uid) return uid
-
-  object[provider] = id
-  object.auth = ~~(Date.now() / 1000)
-  return createEntity('user', object)
+export function getUserWithPW(email, pw) {
+  const result = db.prepare('select id, pw from "user" where email = ?').get(email)
+  if (!result) return Promise.resolve(null)
+  return bcrypt.compare(pw, result.pw).then(res => res && result.id)
 }
 
-export function updateUser({ id, ...object }) {
+export function updateUser(id, object) {
   if ('token' in object) {
     if (!object.token) { // object.token == undefined, null, 0, ''
       object.token = null
@@ -48,7 +32,7 @@ export function updateUser({ id, ...object }) {
   const conds = keys.map(key => `(${key} != $${key} or ${key} is null or $${key} is null)`).join(' or ')
 
   const sets = keys.map(key => `${key} = $${key}`)
-  const stmt = `update "user" set ${sets} where id = ? and (${conds}) and auth is not null`
+  const stmt = `update "user" set ${sets} where id = ? and (${conds})`
   return db.prepare(stmt).run(id, object).changes
 }
 
@@ -60,7 +44,7 @@ export function getAndUpdateUserFromToken(token) { // like findAndModify from mo
 
   if (!token) return undefined
   token = createHash('md5').update(token).digest()
-  const user = db.prepare('select * from "user" where token = ?').get(token)
+  const user = db.prepare('select id, name, email, city from "user" where token = ?').get(token)
   if (!user) return undefined
 
   const now = ~~(Date.now() / 1000)
@@ -69,12 +53,8 @@ export function getAndUpdateUserFromToken(token) { // like findAndModify from mo
     return undefined
   }
 
-  updateUser({ id: user.id, token_ts_exp: now + 7776000 }) // extend 90 more days
-  return {
-    id: user.id,
-    name: user.name,
-    gh_name: user.gh_name,
-  }
+  updateUser(user.id, { token_ts_exp: now + 7776000 }) // extend 90 more days
+  return user
 }
 
 export function deleteToken(token) {
@@ -83,89 +63,63 @@ export function deleteToken(token) {
   return db.prepare('update "user" set token = null, token_ts = null, token_ts_exp = null where token = ?').run(token).changes
 }
 
-export function createPoll(object) { // { uid, q, o: [String, String] }
-  object.o = JSON.stringify(object.o.map(k => ({ k, v: 0 })))
-  return createEntity('poll', object)
+export function getBooks() {
+  return db.prepare('select * from active_book').all()
 }
 
-export function addPollOption({ uid, pid, o }) { // options = [String]
-  const stmts = o.map((_, i) => `
-    update poll
-      set o = json_insert(
-        o,
-        '$[' || json_array_length(o) || ']',
-        json_object('k', $${i}, 'v', 0)
-      )
-      where id = $pid
-        and del is null
-        and $${i} not in (select value from json_tree(o) where key = 'k')
-        and exists (select 1 from "user" where id = $uid and auth is not null)
-  `)
-  const bindParams = o.reduce((p, c, i) => {
-    p[i] = c
-    return p
-  }, { uid, pid })
-  return db.transaction(stmts).run(bindParams).changes
+export function getBooksByUser(id) {
+  return db.prepare('select * from active_book where uid = ?').all(id)
 }
 
-export function deletePoll({ uid, pid }) {
-  return db.prepare('update poll set del = $ts where id = $pid and uid = $uid and del is null')
-    .run({ pid, uid, ts: ~~(Date.now() / 1000) }).changes
+export function getBook(id) {
+  return db.prepare('select * from active_book where bid = ?').get(id)
 }
 
-export function votePoll({ uid, pid, key }) {
-  // return 2, increase a key in pid by 1 when key is present, pid is not deleted, uid exists, and has not voted
-  // also add key to uid votedPoll
-  // return 0 otherwise
-  const incVote = `
-    with path as (select path || '.v' as path from json_tree((select o from poll where id = $pid)) where key = 'k' and value = $key),
-      voted as (select cast(key as int) as k from json_each((select votedPoll from "user" where id = $uid)))
-    update poll set o = json_replace(
-        o,
-        (select path from path),
-        json_extract(o, (select path from path)) + 1
-      )
-      where id = $pid
-        and del is null
-        and exists (select path from path)
-        and exists (select 1 from "user" where id = $uid)
-        and not exists (select 1 from voted where k = $pid)`
-  const addVotedPollToUser = `
-    with voted as (select cast(key as int) as k from json_each((select votedPoll from "user" where id = $uid)))
-    update "user" set votedPoll = json_set(
-        votedPoll,
-        '$.' || cast($pid as int), -- have to cast into int, otherwise there is a trailing .0
-        $key
-      )
-      where id = $uid
-        and exists (select 1 from json_tree((select o from poll where id = $pid and del is null)) where key = 'k' and value = $key)
-        and not exists (select 1 from voted where k = $pid)`
-  return db.transaction([incVote, addVotedPollToUser]).run({ uid, pid: pid, key }).changes
+export function getReqsByUser(id, all = false) {
+  all = all ? '' : 'and status is null'
+  return db.prepare('select * from book_user where uid = ? ' + all + ' order by rowid desc').all(id)
 }
 
-export function isVoted({ uid, pid }) {
+export function getUserReqs(id, all = false) {
+  all = all ? '' : 'and status is null'
+  return db.prepare('select * from book_user where rid = ? ' + all + ' order by rowid desc').all(id)
+}
+
+
+export function getActiveReqsByBook(id, all = false) {
+  all = all ? '' : 'and status is null'
+  return db.prepare('select * from book_user where bid = ? ' + all + ' order by rowid desc').all(id)
+}
+
+
+// add a new book with gid and initial owner uid
+export function addBook(gid, uid) {
+  const bid = createEntity('book', { gid })
+  return db.prepare('insert into book_user (bid, uid, rid, status) values (?, ?, ?, 1)')
+    .run(bid, uid, uid)
+}
+
+// a user rid request a book bid
+export function requestBook(bid, rid) {
   return db.prepare(`
-    select exists (select 1 from "user" where id = $uid and $pid in (select cast(key as int) from json_each(votedPoll)))
-  `).pluck().get({ uid, pid })
+    with cte as (select uid from active_book where bid = $bid)
+    insert into book_user (bid, uid, rid)
+      select $bid as bid, uid, $rid as rid from cte
+      where exists (select uid from cte)
+  `).run({ bid, rid })
 }
 
-export function getPoll({ id }) {
-  if (!id) return undefined
-  return db.prepare('select id, ts, uid, q, o from poll where id = ?').get(id)
+// a user grant/decline a request
+export function actBook(bid, rid, status) {
+  return db.prepare(`
+    update book_user set status = $status
+      where bid = $bid and rid = $rid
+      and status is null
+  `).run({ bid, rid, status })
 }
 
-export function getPolls({ lim = 25, before } = {}) {
-  return db.prepare(`select id, ts, uid, q, o
-    from poll
-    where del is null
-      ${before ? 'and id < $before' : ''}
-    order by id desc
-    limit $lim
-  `).all({ lim: Math.min(Math.max(lim, 1), 25), before })
-}
-
-export function votedPolls(id) {
-  return db.prepare('select votedPoll from "user" where id = ?').pluck().get(id)
+export function delBook(bid, uid) {
+  return db.prepare('insert into book_user (bid, uid) select bid, null from active_book where bid = ? and uid = ?').run(bid, uid)
 }
 
 function createEntity(table, object) {
