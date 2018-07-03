@@ -1,4 +1,4 @@
-import { createHash } from 'crypto'
+import { randomBytes, createHash } from 'crypto'
 import bcrypt from 'bcrypt'
 import db from './sqlite'
 
@@ -10,9 +10,17 @@ export function createUser({ name, email, city = '', pw }) {
 }
 
 export function getUserWithPW(email, pw) {
-  const result = db.prepare('select id, pw from "user" where email = ?').get(email)
-  if (!result) return Promise.resolve(null)
-  return bcrypt.compare(pw, result.pw).then(res => res && result.id)
+  const user = db.prepare('select * from "user" where email = ?').get(email)
+  if (!user) return Promise.resolve(null)
+  return bcrypt.compare(pw, user.pw).then(res => {
+    return res && randomBytes(21)
+  }).then(bytes => {
+    if (!bytes) return null
+    const token = bytes.toString('base64')
+    user.token = token
+    updateUser(user.id, { token })
+    return user
+  })
 }
 
 export function updateUser(id, object) {
@@ -63,40 +71,40 @@ export function deleteToken(token) {
   return db.prepare('update "user" set token = null, token_ts = null, token_ts_exp = null where token = ?').run(token).changes
 }
 
-export function getBooks() {
-  return db.prepare('select * from active_book').all()
+export function getGBooks() { // get book id with google id
+  return db.prepare('select * from book where del is null order by rowid desc').all()
 }
 
-export function getBooksByUser(id) {
-  return db.prepare('select * from active_book where uid = ?').all(id)
+export function getBooks(uid) {
+  return db.prepare('select * from active_book ' + (uid ? 'where uid = ?' : '')).all(uid)
 }
 
 export function getBook(id) {
   return db.prepare('select * from active_book where bid = ?').get(id)
 }
 
-export function getReqsByUser(id, all = false) {
+export function getReqsByBook(id, all = false) {
+  all = all ? '' : 'and status is null'
+  return db.prepare('select * from book_user where bid = ? ' + all + ' order by rowid desc').all(id)
+}
+
+export function getReqsByUser(id, all = false) { // all requests towards this user
   all = all ? '' : 'and status is null'
   return db.prepare('select * from book_user where uid = ? ' + all + ' order by rowid desc').all(id)
 }
 
-export function getUserReqs(id, all = false) {
+export function getUserReqs(id, all = false) { // all requests created by this user
   all = all ? '' : 'and status is null'
   return db.prepare('select * from book_user where rid = ? ' + all + ' order by rowid desc').all(id)
 }
 
 
-export function getActiveReqsByBook(id, all = false) {
-  all = all ? '' : 'and status is null'
-  return db.prepare('select * from book_user where bid = ? ' + all + ' order by rowid desc').all(id)
-}
-
-
 // add a new book with gid and initial owner uid
 export function addBook(gid, uid) {
-  const bid = createEntity('book', { gid })
-  return db.prepare('insert into book_user (bid, uid, rid, status) values (?, ?, ?, 1)')
-    .run(bid, uid, uid)
+  const id = createEntity('book', { gid })
+  const { lastInsertROWID } = db.prepare('insert into book_user (bid, uid, rid, status) values (?, ?, ?, 1)')
+    .run(id, uid, uid)
+  return db.prepare('select * from book_user where rowid = ?').get(lastInsertROWID)
 }
 
 // a user rid request a book bid
@@ -106,20 +114,21 @@ export function requestBook(bid, rid) {
     insert into book_user (bid, uid, rid)
       select $bid as bid, uid, $rid as rid from cte
       where exists (select uid from cte)
-  `).run({ bid, rid })
+  `).run({ bid, rid }).changes
 }
 
 // a user grant/decline a request
 export function actBook(bid, rid, status) {
+  // status = 1 (grant), 0 (decline)
   return db.prepare(`
     update book_user set status = $status
       where bid = $bid and rid = $rid
       and status is null
-  `).run({ bid, rid, status })
+  `).run({ bid, rid, status }).changes
 }
 
 export function delBook(bid, uid) {
-  return db.prepare('insert into book_user (bid, uid) select bid, null from active_book where bid = ? and uid = ?').run(bid, uid)
+  return db.prepare('insert into book_user (bid, uid) select bid, null from active_book where bid = ? and uid = ?').run(bid, uid).changes
 }
 
 function createEntity(table, object) {

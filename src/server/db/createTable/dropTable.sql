@@ -1,3 +1,3 @@
 drop table if exists "user";
-drop table if exists poll;
-drop table if exists debug;
+drop table if exists book;
+drop table if exists book_user;

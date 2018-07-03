@@ -1,0 +1,53 @@
+type Query {
+  getGBooks: [Book]!
+  getBooks(uid: Int): [BookUser]!
+  getBook(bid: Int): BookUser
+  getReqsByBook(bid: Int!, all: Boolean = false): [BookUser]!
+  getReqsByUser(rid: Int!, all: Boolean = false): [BookUser]!
+  getUserReqs(uid: Int!, all: Boolean = false): [BookUser]!
+}
+
+type Mutation {
+  signup(name: String, email: String!, city: String, pw: String!): User
+
+  addBook(token: String!, gid: String!): BookUser!
+  delBook(token: String!, bid: Int!): Int!
+  tradeBook(token: String!, type: TradeType!, bid: Int!, rid: Int): Int!
+  
+  login(email: String!, pw: String!): User
+  logout(token: String): Int
+
+  changeDetail(token: String!, key: UserDetail!, value: String!): Int!
+}
+
+type Book {
+  id: Int!
+  gid: String!
+}
+
+type BookUser {
+  bid: Int!
+  uid: Int
+  rid: Int
+  status: Int
+  ts: Int
+}
+
+type User {
+  id: Int!
+  name: String
+  email: String!
+  city: String
+  token: String!
+}
+
+enum UserDetail {
+  name
+  city
+}
+
+enum TradeType {
+  request
+  accept
+  decline
+}

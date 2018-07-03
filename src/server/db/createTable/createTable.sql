@@ -33,7 +33,8 @@ create table "user" (
 create table book (
   id int not null primary key,
   ts int not null default (strftime('%s','now')),
-  gid text not null -- book id, from google book API, this is text
+  gid text not null, -- book id, from google book API, this is text
+  del int -- ts when deleted
 );
 
 create table book_user (
@@ -47,10 +48,8 @@ create table book_user (
 create view active_book as
   select *, max(rowid) as rowid from book_user
     where status is 1
-    and bid not in
-      (select bid from book_user where uid is null)
+    and bid in (select id from book where del is null)
     group by bid;
-
 
 create trigger book_user_before_insert_new_request
   before insert on book_user
@@ -77,7 +76,7 @@ create trigger book_user_after_insert_delete
   after insert on book_user
   when new.uid is null
   begin
-    select 1;
+    update book set del = strftime('%s','now') where id = new.bid;
     update book_user set status = 0 where bid = new.bid and status is null; -- has to put uid is null, this will trigger the book_user_after_update_status
   end;
 create trigger book_user_before_update

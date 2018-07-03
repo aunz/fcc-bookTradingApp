@@ -4,7 +4,7 @@ import db from './sqlite'
 import {
   createUser, getUserWithPW, updateUser, getAndUpdateUserFromToken,
   addBook, requestBook, actBook, delBook,
-  getReqsByUser, getUserReqs, getActiveReqsByBook,
+  getReqsByUser, getUserReqs, getReqsByBook,
 } from './dbFunctions'
 
 const s = { skip: true } // eslint-disable-line
@@ -25,15 +25,6 @@ test('Create users', async t => {
   r = db.prepare('select * from "user" order by rowid').all()
   t.ok(r[0].id > 10000 && r[1].id >= r[0].id + 10 && r[9].id >= r[8].id + 10 && r[9].id >= r[0].id + 90, `id starts with 10000 and jumps 10 each: ${r[0].id} ~ ${r[9].id}`)
 
-  t.ok((await Promise.all([
-    getUserWithPW('u2@test', '1232'),
-    getUserWithPW('u10@test', '12310'),
-  ])).join(' ') === [
-    db.prepare('select id from "user" where email = ?').pluck().get('u2@test'),
-    db.prepare('select id from "user" where email = ?').pluck().get('u10@test')
-  ].join(' '), 'can get uid from email and pw')
-
-
   updateUser(r[0].id, { city: 'new city', token: '123', email: 'u4b@test' })
   r = db.prepare('select * from "user" where id = ?').get(r[0].id)
   t.ok(r.city === 'new city' && r.email === 'u4b@test' && Buffer.isBuffer(r.token), 'can update user')
@@ -41,9 +32,26 @@ test('Create users', async t => {
   r = getAndUpdateUserFromToken('123')
   t.ok(r.city === 'new city' && r.email === 'u4b@test', 'can get user from token')
 
+  r = await Promise.all([
+    getUserWithPW('u2@test', '1232'),
+    getUserWithPW('u10@test', '12310'),
+  ])
+
+  t.ok(r[0].token.length, 28, 'has token string of len 28')
+  t.equal(
+    r.map(el => el.id).join(' '),
+    [
+      db.prepare('select id from "user" where email = ?').pluck().get('u2@test'),
+      db.prepare('select id from "user" where email = ?').pluck().get('u10@test')
+    ].join(' '),
+    'can get uid from email and pw'
+  )
 
   r = await createUser({ name: '', email: 'u1@test', pw: '123' }).catch(e => e)
   t.ok(/SqliteError: CHECK constraint failed: user/.test(r), 'email constraint')
+
+  r = await getUserWithPW('u2@test', 'wrong password')
+  t.equal(r, null, 'cannot login with wrong password')
 
   t.end()
 })
@@ -82,9 +90,9 @@ test('Create books', async t => {
     'U1~3 request B0'
   )
 
-  t.equal(actBook(b[0], u[4], 1).changes, 0, 'B0 cannot be given to U4 as U4 did not request it')
-  t.equal(actBook(b[0], u[4], 0).changes, 0, 'B0 cannot be declined to U4 as U4 did not request it')
-  t.equal(actBook(b[0], u[1], 1).changes, 1, 'B0 is given to U1')
+  t.equal(actBook(b[0], u[4], 1), 0, 'B0 cannot be given to U4 as U4 did not request it')
+  t.equal(actBook(b[0], u[4], 0), 0, 'B0 cannot be declined to U4 as U4 did not request it')
+  t.equal(actBook(b[0], u[1], 1), 1, 'B0 is given to U1')
   r = db.prepare('select * from book_user where bid = ?').all(b[0])
   t.equal(r.length, 5, 'B0 now has 5 entries')
   t.equal(
@@ -101,7 +109,7 @@ test('Create books', async t => {
   requestBook(b[0], u[3])
 
 
-  t.equal(actBook(b[0], u[2], 0).changes, 1, 'B0 is declined to U2 and U3')
+  t.equal(actBook(b[0], u[2], 0), 1, 'B0 is declined to U2 and U3')
   r = db.prepare('select * from book_user where bid = ?').all(b[0])
   t.equal(r.length, 7, 'B0 now has 7 entries')
   t.equal(
@@ -114,10 +122,10 @@ test('Create books', async t => {
   requestBook(b[4], u[3])
   requestBook(b[4], u[4])
 
-  t.equal(delBook(b[0], u[0]).changes, 0, 'cannot del B0 by U0 as U0 is not the owner')
-  t.equal(delBook(b[4], u[3]).changes, 0, 'cannot del B4 by U3 as U3 is not the owner')
+  t.equal(delBook(b[0], u[0]), 0, 'cannot del B0 by U0 as U0 is not the owner')
+  t.equal(delBook(b[4], u[3]), 0, 'cannot del B4 by U3 as U3 is not the owner')
 
-  t.equal(delBook(b[4], u[2]).changes, 1, 'can del B4 by U2 as U2 is the owner')
+  t.equal(delBook(b[4], u[2]), 1, 'can del B4 by U2 as U2 is the owner')
   r = db.prepare('select bid from active_book').pluck().all()
   t.equal(r.length, 7, 'only 7 books are active')
   t.ok(!r.includes(b[4]), 'B4 has been deleted in active_book')
@@ -125,7 +133,7 @@ test('Create books', async t => {
   r = db.prepare('select bid, uid, rid, status from book_user where bid = ? order by rowid desc limit 1').get(b[4])
   t.deepEqual(r, { bid: b[4], uid: null, rid: null, status: 0 }, 'B4 has been marked deleted in user_book')
 
-  t.equal(requestBook(b[4], u[0]).changes, 0, 'B4 cannot be requested any more')
+  t.equal(requestBook(b[4], u[0]), 0, 'B4 cannot be requested any more')
 
   // U0 request 4 books
   requestBook(b[0], u[0])
@@ -158,14 +166,14 @@ test('Create books', async t => {
     'U1 has 5 requests'
   )
 
-  r = getActiveReqsByBook(b[0])
+  r = getReqsByBook(b[0])
   t.equal(
     r.length + ' ' + r.map(el => el.rid).join(' '),
     1 + ' ' + u[0],
     'B0 is requested by U0'
   )
 
-  r = getActiveReqsByBook(b[2])
+  r = getReqsByBook(b[2])
   r.forEach(el => { delete el.ts })
   t.equal(
     r.length + ' ' + r.map(el => el.rid).join(' '),
@@ -173,7 +181,7 @@ test('Create books', async t => {
     'B2 is requested by U0 and U2'
   )
 
-  r = getActiveReqsByBook(b[1])
+  r = getReqsByBook(b[1])
   t.equal(r.length, 0, 'B1 is not being requested')
 
   r = db.prepare('select * from book_user').all()

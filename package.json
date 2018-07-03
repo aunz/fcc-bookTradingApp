@@ -74,6 +74,7 @@
     "graphql": "^0.13.2",
     "graphql-tools": "^2.24.0",
     "helmet": "^3.12.0",
-    "node-fetch": "^2.1.2"
+    "node-fetch": "^2.1.2",
+    "validator": "^10.4.0"
   }
 }
