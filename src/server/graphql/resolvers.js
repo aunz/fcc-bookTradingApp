@@ -36,8 +36,9 @@ export default {
       return delBook(bid, uid)
     },
     tradeBook(_, { token, type, bid, rid }) {
-      authUser(token)
-      if (type === 'request') return requestBook(bid, rid)
+      const uid = authUser(token)
+      if (type === 'request') return requestBook(bid, uid)
+      if (!rid) throw errInput('rid is required')
       if (type === 'accept') return actBook(bid, rid, 1)
       if (type === 'decline') return actBook(bid, rid, 0)
       throw errInput('wrong trade type')

@@ -14,3 +14,9 @@ table schema, trigger for insert and update book_user
 reorientation
 20180630  3
 test table schema
+20180702  3
+db functions
+20180703  3
+test for db functions and graphql type def
+20180704  3
+test for resolver

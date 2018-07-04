@@ -76,12 +76,14 @@ export function getGBooks() { // get book id with google id
 }
 
 export function getBooks(uid) {
-  return db.prepare('select * from active_book ' + (uid ? 'where uid = ?' : '')).all(uid)
+  if (uid) return db.prepare('select * from active_book where uid = ?').all(uid)
+  return db.prepare('select * from active_book').all()
 }
 
 export function getBook(id) {
   return db.prepare('select * from active_book where bid = ?').get(id)
 }
+
 
 export function getReqsByBook(id, all = false) {
   all = all ? '' : 'and status is null'

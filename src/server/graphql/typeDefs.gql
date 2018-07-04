@@ -9,15 +9,14 @@ type Query {
 
 type Mutation {
   signup(name: String, email: String!, city: String, pw: String!): User
-
-  addBook(token: String!, gid: String!): BookUser!
-  delBook(token: String!, bid: Int!): Int!
-  tradeBook(token: String!, type: TradeType!, bid: Int!, rid: Int): Int!
-  
   login(email: String!, pw: String!): User
   logout(token: String): Int
 
   changeDetail(token: String!, key: UserDetail!, value: String!): Int!
+
+  addBook(token: String!, gid: String!): BookUser!
+  delBook(token: String!, bid: Int!): Int!
+  tradeBook(token: String!, type: TradeType!, bid: Int!, rid: Int): Int!
 }
 
 type Book {

@@ -49,7 +49,7 @@ create view active_book as
   select *, max(rowid) as rowid from book_user
     where status is 1
     and bid in (select id from book where del is null)
-    group by bid;
+    group by bid order by rowid desc;
 
 create trigger book_user_before_insert_new_request
   before insert on book_user
