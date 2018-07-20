@@ -14,9 +14,9 @@ const s = { skip: true } // eslint-disable-line
 
 test('Init data', async t => {
   const { data: u } = await graphql(schema, `mutation {
-    u1: signup(name: "U1", email: "USER.01@gmail.com", city: "C1", pw: "1234") { id, name, email, city, token }
-    u2: signup(name: "U2", email: "U2@test.com", city: "C2", pw: "1234") { id, name, email, city, token }
-    u3: signup(name: "U3", email: "u3@test.com", city: "C3", pw: "1234") { id, name, email, city, token }
+    u1: signup(name: "U1", email: "USER.01@gmail.com", loc: "C1", pw: "1234") { id, name, email, loc, token }
+    u2: signup(name: "U2", email: "U2@test.com", loc: "C2", pw: "1234") { id, name, email, loc, token }
+    u3: signup(name: "U3", email: "u3@test.com", loc: "C3", pw: "1234") { id, name, email, loc, token }
   }`)
 
   const { u1, u2, u3 } = u
@@ -25,7 +25,7 @@ test('Init data', async t => {
     h2(u1, 'U1', 'user01@gmail.com', 'C1') &&
     h2(u2, 'U2', 'u2@test.com', 'C2') &&
     h2(u3, 'U3', 'u3@test.com', 'C3'),
-    'users also have name, email, city'
+    'users also have name, email, loc'
   )
   t.ok(u1.pw === undefined, 'no pw should be returned')
 
@@ -52,58 +52,58 @@ test('Init data', async t => {
 
 test('User', s, async t => {
   let r = await graphql(schema, `mutation {
-    u4: signup(name: "U4", email: "u.s.e.r.01@gmail.com", city: "C1", pw: "1234") { id, name, email, city, token }
+    u4: signup(name: "U4", email: "u.s.e.r.01@gmail.com", loc: "C1", pw: "1234") { id, name, email, loc, token }
   }`)
 
-  t.ok(/UNIQUE.*email/i.test(r.errors[0].message), 'cannot create a user with an email already registered')
+  t.ok(/(UNIQUE)?.*email/i.test(r.errors[0].message), 'cannot create a user with an email already registered')
 
   r = await graphql(schema, `mutation {
-    u4: signup(name: "U4", email: "u.s.e.r.02@gmail.com", city: "C1" ) { id, name, email, city, token }
+    u4: signup(name: "U4", email: "u.s.e.r.02@gmail.com", loc: "C1" ) { id, name, email, loc, token }
   }`)
   t.ok(/pw/i.test(r.errors[0].message), 'pw is required')
 
   r = await graphql(schema, `mutation {
-    u4: signup(name: "U4", email: "u.s.e.r.02@gmail.com", city: "C1", pw: 123 ) { id, name, email, city, token }
+    u4: signup(name: "U4", email: "u.s.e.r.02@gmail.com", loc: "C1", pw: 123 ) { id, name, email, loc, token }
   }`)
   t.ok(/expected.*string.*123/i.test(r.errors[0].message), 'pw has to be a string')
 
   r = await graphql(schema, `mutation {
-    u4: signup(name: "U4", email: "u.s.e.r.02@gmail.com", city: "C1", pw: "12" ) { id, name, email, city, token }
+    u4: signup(name: "U4", email: "u.s.e.r.02@gmail.com", loc: "C1", pw: "12" ) { id, name, email, loc, token }
   }`)
   t.ok(/invalid.*input.*password/i.test(r.errors[0].message), 'pw length too short')
 
   r = await graphql(schema, `mutation {
-    u4: signup(name: "U4", email: "e@e", city: "C1", pw: "123456" ) { id, name, email, city, token }
+    u4: signup(name: "U4", email: "e@e", loc: "C1", pw: "123456" ) { id, name, email, loc, token }
   }`)
   t.ok(/invalid.*input.*email/i.test(r.errors[0].message), 'email is required')
 
   {
     const { data: u1 } = await graphql(schema, `mutation {
-      login(email: "u.ser01@gmail.com", pw: "1234") { id, name, email, city, token }
+      login(email: "u.ser01@gmail.com", pw: "1234") { id, name, email, loc, token }
     }`)
     t.ok(h(u1.login) && h2(u1.login, 'U1', 'user01@gmail.com', 'C1'), 'can login')
 
 
     r = await graphql(schema, `mutation {
-      c1: changeDetail(token: "${u1.login.token}", key: name, value: "New Name")
-      c2: changeDetail(token: "${u1.login.token}", key: city, value: "New City")
+      c1: updateDetail(token: "${u1.login.token}", key: name, value: "New Name")
+      c2: updateDetail(token: "${u1.login.token}", key: loc, value: "New loc")
     }`)
-    t.deepEqual(r, { data: { c1: 1, c2: 1 } }, 'logged in user can change name and city')
+    t.deepEqual(r, { data: { c1: 1, c2: 1 } }, 'logged in user can change name and loc')
 
     r = await graphql(schema, `mutation {
-      c1: changeDetail(token: "${u1.login.token}", key: Name, value: "New Name")
+      c1: updateDetail(token: "${u1.login.token}", key: Name, value: "New Name")
     }`)
-    t.ok(/expected.*type/i.test(r.errors[0].message), 'changeDetail has to be either name or city')
+    t.ok(/expected.*type/i.test(r.errors[0].message), 'updateDetail has to be either name or loc')
 
     r = await graphql(schema, `mutation {
-      c1: changeDetail(token: "123", key: name, value: "new name")
+      c1: updateDetail(token: "123", key: name, value: "new name")
     }`)
     t.ok(/unauthorized/i.test(r.errors[0].message), 'need to login to change detail')
 
     r = await graphql(schema, `mutation {
-      login(email: "u.ser01@gmail.com", pw: "1234") { id, name, email, city, token }
+      login(email: "u.ser01@gmail.com", pw: "1234") { id, name, email, loc, token }
     }`)
-    t.ok(r.data.login.name === 'New Name' && r.data.login.city === 'New City', 'user detail has been changed')
+    t.ok(r.data.login.name === 'New Name' && r.data.login.loc === 'New loc', 'user detail has been changed')
 
     r = await graphql(schema, 'mutation { c1: logout(token: "111") }')
     t.deepEqual(r, { data: { c1: null } }, 'log out with the wrong token')
@@ -151,7 +151,7 @@ test('Book', s, async t => {
   )
 
   const u = (await graphql(schema, `mutation {
-    login(email: "u.s.er01@gmail.com", pw: "1234") { id, name, email, city, token }
+    login(email: "u.s.er01@gmail.com", pw: "1234") { id, name, email, loc, token }
   }`)).data.login
 
   r = (await graphql(schema, `query {
@@ -171,9 +171,9 @@ test('Book', s, async t => {
 
 test('Trade', async t => {
   const { data: { u1, u2, u3 } } = await graphql(schema, `mutation {
-    u1: login(email: "u.s.er01@gmail.com", pw: "1234") { id, name, email, city, token }
-    u2: login(email: "u2@test.com", pw: "1234") { id, name, email, city, token }
-    u3: login(email: "u3@test.com", pw: "1234") { id, name, email, city, token }
+    u1: login(email: "u.s.er01@gmail.com", pw: "1234") { id, name, email, loc, token }
+    u2: login(email: "u2@test.com", pw: "1234") { id, name, email, loc, token }
+    u3: login(email: "u3@test.com", pw: "1234") { id, name, email, loc, token }
   }`)
 
   const b = (await graphql(schema, `query {
@@ -386,8 +386,8 @@ test('Trade', async t => {
 function h(x, max = 10050) {
   return x.id >= 10000 && x.id <= max && x.token.length === 28
 }
-function h2(x, name, email, city) {
-  return x.name === name && x.email === email && x.city === city
+function h2(x, name, email, loc) {
+  return x.name === name && x.email === email && x.loc === loc
 }
 function h3(x, uid, max = 10200) {
   return x.bid >= 10000 && x.bid <= max && x.status === 1 && x.uid === x.rid && x.uid === uid

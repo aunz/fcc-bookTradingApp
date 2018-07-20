@@ -1,6 +1,6 @@
 import express from 'express'
 import helmet from 'helmet'
-import graphqlExpress from './graphql'
+import apolloServer from './graphql'
 
 
 const app = express()
@@ -12,11 +12,11 @@ if (process.env.NODE_ENV === 'production') app.use(helmet())
 
 app.use(express.static('./dist/public'))
 
-app.use('/graphql', graphqlExpress)
-if (process.env.NODE_ENV === 'development') {
-  const { graphiqlExpress } = require('apollo-server-express')
-  app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
-}
+apolloServer.applyMiddleware({ app })
+// if (process.env.NODE_ENV === 'development') {
+//   const { graphiqlExpress } = require('apollo-server-express')
+//   app.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
+// }
 
 app.use((req, res, next) => {
   if (req.method === 'GET' && req.accepts('html')) {

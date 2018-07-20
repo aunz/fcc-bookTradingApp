@@ -19,11 +19,13 @@ export default {
     getUserReqs(_, { uid, all }) { return getUserReqs(uid, all) }, // all requests towards this user
   },
   Mutation: {
-    signup(_, { name = '', email, city = '', pw }) {
-      if (!isEmail(email)) throw errInput('No email is provided')
+    signup(_, { name = '', email, loc = '', pw }) {
+      if (!isEmail(email)) throw errInput('Email is invalid')
       if (pw.length < 3) throw errInput('Password too short')
       email = normalizeEmail(email)
-      return createUser({ name, email, city, pw }).then(() => getUserWithPW(email, pw))
+      return createUser({ name, email, loc, pw }).then(() => getUserWithPW(email, pw)).catch(e => {
+        if (/UNIQUE.*email/i.test(e.message)) throw errInput('The provided email has been registered')
+      })
     },
     addBook(_, { token, gid }) {
       if (!gid) throw errInput('Need book id')
@@ -49,19 +51,31 @@ export default {
       if (!user) throw errAuth()
       return user
     },
+    loginWithToken(_, { token }) {
+      return getAndUpdateUserFromToken(token)
+    },
     logout(_, { token }) {
+      const uid = authUser(token)
       try {
-        const uid = authUser(token)
         return updateUser(uid, { token: null })
       } catch (e) {  // eslint-disable-line
         return null
       }
     },
-    changeDetail(_, { token, key, value }) {
+    updateDetail(_, { token, key, value }) {
       if (!token || !key || !value) throw errInput()
-      if (!['name', 'city'].includes(key)) throw errInput() // can only update name and city
+      if (!['name', 'loc', 'email'].includes(key)) throw errInput() // can only update name, loc, email
+      if (key === 'email') {
+        if (!isEmail(value)) throw errInput('Email is invalid')
+        value = normalizeEmail(value)
+      }
       const uid = authUser(token)
-      return updateUser(uid, { [key]: value })
+      try {
+        return updateUser(uid, { [key]: value })
+      } catch (e) {  // eslint-disable-line
+        if (/UNIQUE.*email/i.test(e.message)) throw errInput('The provided email has been registered')
+        throw e
+      }
     },
   },
 }

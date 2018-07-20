@@ -8,11 +8,12 @@ type Query {
 }
 
 type Mutation {
-  signup(name: String, email: String!, city: String, pw: String!): User
+  signup(name: String!, email: String!, loc: String, pw: String!): User
   login(email: String!, pw: String!): User
-  logout(token: String): Int
+  loginWithToken(token: String!): User
+  logout(token: String!): Int
 
-  changeDetail(token: String!, key: UserDetail!, value: String!): Int!
+  updateDetail(token: String!, key: UserDetail!, value: String!): Int!
 
   addBook(token: String!, gid: String!): BookUser!
   delBook(token: String!, bid: Int!): Int!
@@ -25,6 +26,7 @@ type Book {
 }
 
 type BookUser {
+  id: Int!
   bid: Int!
   uid: Int
   rid: Int
@@ -36,13 +38,15 @@ type User {
   id: Int!
   name: String
   email: String!
-  city: String
+  loc: String
   token: String!
 }
 
 enum UserDetail {
   name
-  city
+  loc
+  email
+  pw
 }
 
 enum TradeType {

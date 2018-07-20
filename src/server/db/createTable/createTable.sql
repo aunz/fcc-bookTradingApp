@@ -3,7 +3,7 @@ create table "user" (
   ts int not null default (strftime('%s','now')), -- created date, timestamp in epoch
   "name" text not null check(trim(name) <> ''),
   email text not null unique check(trim(email) <> ''), -- all lovercase
-  city text,
+  loc text,
   pw text not null, -- password
   token blob unique, -- hashed token for user authentication, very likely unique
   token_ts int, -- ts when token is created

@@ -15,7 +15,7 @@ test('Create users', async t => {
     return createUser({
       name: 'U' + i,
       email: 'u' + i + '@test',
-      city: 'C' + i,
+      loc: 'C' + i,
       pw: '123' + i
     })
   })
@@ -25,12 +25,12 @@ test('Create users', async t => {
   r = db.prepare('select * from "user" order by rowid').all()
   t.ok(r[0].id > 10000 && r[1].id >= r[0].id + 10 && r[9].id >= r[8].id + 10 && r[9].id >= r[0].id + 90, `id starts with 10000 and jumps 10 each: ${r[0].id} ~ ${r[9].id}`)
 
-  updateUser(r[0].id, { city: 'new city', token: '123', email: 'u4b@test' })
+  updateUser(r[0].id, { loc: 'new loc', token: '123', email: 'u4b@test' })
   r = db.prepare('select * from "user" where id = ?').get(r[0].id)
-  t.ok(r.city === 'new city' && r.email === 'u4b@test' && Buffer.isBuffer(r.token), 'can update user')
+  t.ok(r.loc === 'new loc' && r.email === 'u4b@test' && Buffer.isBuffer(r.token), 'can update user')
 
   r = getAndUpdateUserFromToken('123')
-  t.ok(r.city === 'new city' && r.email === 'u4b@test', 'can get user from token')
+  t.ok(r.loc === 'new loc' && r.email === 'u4b@test', 'can get user from token')
 
   r = await Promise.all([
     getUserWithPW('u2@test', '1232'),

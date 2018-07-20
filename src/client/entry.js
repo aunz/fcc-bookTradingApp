@@ -1,8 +1,7 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { render } from 'react-dom'
 import { ApolloProvider } from 'react-apollo'
 import { BrowserRouter } from 'react-router-dom'
-import gql from 'graphql-tag'
 
 import client from '~/client/apolloClient'
 import App from './App'
@@ -12,11 +11,9 @@ render(
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </ApolloProvider>
-  , document.getElementById('root')
+  </ApolloProvider>,
+  document.getElementById('root')
 )
 
 
 if (module.hot) module.hot.accept()
-
-

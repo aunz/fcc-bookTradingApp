@@ -2,10 +2,10 @@ import { randomBytes, createHash } from 'crypto'
 import bcrypt from 'bcrypt'
 import db from './sqlite'
 
-export function createUser({ name, email, city = '', pw }) {
+export function createUser({ name, email, loc = '', pw }) {
   return bcrypt.hash(pw, 10)
     .then(hash => {
-      return createEntity('user', { name, email, city, pw: hash })
+      return createEntity('user', { name, email, loc, pw: hash })
     })
 }
 
@@ -52,7 +52,7 @@ export function getAndUpdateUserFromToken(token) { // like findAndModify from mo
 
   if (!token) return undefined
   token = createHash('md5').update(token).digest()
-  const user = db.prepare('select id, name, email, city from "user" where token = ?').get(token)
+  const user = db.prepare('select id, name, email, loc from "user" where token = ?').get(token)
   if (!user) return undefined
 
   const now = ~~(Date.now() / 1000)
@@ -76,8 +76,8 @@ export function getGBooks() { // get book id with google id
 }
 
 export function getBooks(uid) {
-  if (uid) return db.prepare('select * from active_book where uid = ?').all(uid)
-  return db.prepare('select * from active_book').all()
+  if (uid) return db.prepare('select *, rowid as id from active_book where uid = ?').all(uid)
+  return db.prepare('select *, rowid as id from active_book').all()
 }
 
 export function getBook(id) {

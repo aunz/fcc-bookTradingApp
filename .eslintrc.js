@@ -52,6 +52,7 @@ module.exports = {
     'no-nested-ternary': 0,
     'react/prefer-stateless-function': 0,
     'object-curly-newline': 0,
+    curly: 0,
     'no-confusing-arrow': 0,
     'jsx-a11y/label-has-for': 0,
     'jsx-a11y/anchor-is-valid': [ 'error', {
@@ -60,8 +61,13 @@ module.exports = {
     }],
     'function-paren-newline': ['error', 'consistent'],
     'import/prefer-default-export': 0,
+    'import/order': 0,
     'semi-style': 0,
     'react/no-unescaped-entities': 0,
     'react/no-multi-comp': 0,
+    'react/sort-comp': 0,
+    'react/destructuring-assignment': 0,
+    'react/jsx-one-expression-per-line': 0,
+    'lines-between-class-members': 0
   }
 }
