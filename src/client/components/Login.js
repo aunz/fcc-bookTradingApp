@@ -28,12 +28,16 @@ export default class extends Component {
     pw: '',
     showError: true,
   }
+  inputRef = React.createRef()
   input = ({ currentTarget }) => {
     this.setState({ [currentTarget.name]: currentTarget.value })
   }
+  onKeyUp = e => {
+    if (e.key !== 'Enter') return
+    this.inputRef.current && this.inputRef.current.click()
+  }
   render() {
     const { email, pw, showError } = this.state
-    const disabled = !isEmail(email) || pw.length < 3
     return (
       <div
         className="flex flex-column mx-auto"
@@ -52,6 +56,7 @@ export default class extends Component {
           className={inputClass2}
           onChange={this.input}
           name="pw"
+          onKeyUp={this.onKeyUp}
         />
         <Mutation
           mutation={LOGIN}
@@ -65,11 +70,12 @@ export default class extends Component {
           {(mutate, { loading, error }) => {
             if (error && showError) return ErrorButton({
               onClick: () => { this.setState({ showError: false }) },
-              children: /unauthorized/i.test(error.message) ?
-                'The email and password combination is incorrect' :
-                'Oops something went wrong!'
+              children: /unauthorized/i.test(error.message)
+                ? 'The email and password combination is incorrect'
+                : 'Oops something went wrong!'
             })
             if (loading) return spinner
+            const disabled = !isEmail(email) || pw.length < 3 || (error && showError)
             return (
               <input
                 type="submit"
@@ -80,6 +86,7 @@ export default class extends Component {
                   mutate({ variables: { email, pw } })
                   this.setState({ showError: true })
                 }}
+                ref={this.inputRef}
               />
             )
           }}
@@ -164,9 +171,9 @@ export class Signup extends Component {
             const { name, email, loc, pw1, pw2, showError } = this.state
             if (error && showError) return ErrorButton({
               onClick: () => { this.setState({ showError: false }) },
-              children: /email/i.test(error.message) ?
-                'The email is invalid or has been registered!' :
-                'Oops something went wrong!'
+              children: /email/i.test(error.message)
+                ? 'The email is invalid or has been registered!'
+                : 'Oops something went wrong!'
             })
             if (loading) return spinner
             return (
