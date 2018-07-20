@@ -120,12 +120,14 @@ export default class AddBook extends PureComponent {
           <Book
             book={selectedBook}
             close={() => { this.setState({ selectedBook: {} }) }}
+            renderItems={() => <AddToMyBook book={selectedBook} />}
           />
         )}
       </div>
     )
   }
 }
+
 
 const thumbClass = 'm1 p1 flex justify-center items-center border border-silver pointer outline-none ' + css({
   width: '9rem',
@@ -158,15 +160,11 @@ BookThumb.propTypes = {
   onClick: PropTypes.func,
 }
 
-const Book = withRouter(class Book extends PureComponent {
+class Book extends PureComponent {
   static propTypes = {
     book: PropTypes.object, // eslint-disable-line
-    history: PropTypes.object, // eslint-disable-line
     close: PropTypes.func,
-    renderMore: PropTypes.func, // to render more item underneath the thumb
-  }
-  state = {
-    showError: false,
+    renderItems: PropTypes.func, // to render more items underneath the thumb
   }
   render() {
     const {
@@ -187,48 +185,7 @@ const Book = withRouter(class Book extends PureComponent {
       >
         <div className="flex flex-column mr1">
           <img src={smallThumbnail} alt="" />
-          <Mutation
-            mutation={ADD_BOOK}
-            update={(proxyCache, mutationResult) => {
-              const { id: uid } = client.readQuery({ query: LOCAL_USER }).localUser
-              const data = proxyCache.readQuery({
-                query: GET_BOOKS,
-                variables: { uid }
-              })
-              data.getBooks.push({
-                id: 9999999, // just random temporary id
-                ...mutationResult.data.addBook,
-                gid: this.props.book.id,
-              })
-              proxyCache.writeQuery({
-                query: GET_BOOKS,
-                data
-              })
-            }}
-          >
-            {(mutate, { loading, error }) => {
-              if (error && this.state.showError) return ErrorButton({
-                onClick: () => { this.setState({ showError: false }) },
-                children: 'Oops something went wrong!'
-              })
-              if (loading) return <span className="m2 self-center">{spinner}</span>
-              return (
-                <button
-                  className={buttonClass + ' m2 self-center'}
-                  onClick={() => {
-                    const { token } = client.readQuery({ query: LOCAL_USER }).localUser
-                    mutate({ variables: { token, gid: this.props.book.id } })
-                      .then(() => {
-                        this.props.history.push('/myBook')
-                      })
-                  }}
-                  type="submit"
-                >
-                  <b>Add</b>
-                </button>
-              )
-            }}
-          </Mutation>
+          {this.props.renderItems(this.props, this.state)}
         </div>
         <div className="m1 flex-auto">
           <h3 className="mt0">{title}</h3>
@@ -265,6 +222,62 @@ const Book = withRouter(class Book extends PureComponent {
           &#xe807;
         </button>
       </div>
+    )
+  }
+}
+
+const AddToMyBook = withRouter(class AddToMyBook extends PureComponent {
+  static propTypes = {
+    book: PropTypes.object, // eslint-disable-line
+    history: PropTypes.object, // eslint-disable-line
+  }
+  state = {
+    showError: false
+  }
+  render() {
+    return (
+      <Mutation
+        mutation={ADD_BOOK}
+        update={(proxyCache, mutationResult) => {
+          const { id: uid } = client.readQuery({ query: LOCAL_USER }).localUser
+          const data = proxyCache.readQuery({
+            query: GET_BOOKS,
+            variables: { uid }
+          })
+          data.getBooks.push({
+            id: 9999999, // just random temporary id
+            ...mutationResult.data.addBook,
+            gid: this.props.book.id,
+          })
+          proxyCache.writeQuery({
+            query: GET_BOOKS,
+            data
+          })
+        }}
+      >
+        {(mutate, { loading, error }) => {
+          if (error && this.state.showError) return ErrorButton({
+            onClick: () => { this.setState({ showError: false }) },
+            children: 'Oops something went wrong!'
+          })
+          if (loading) return <span className="m2 self-center">{spinner}</span>
+          return (
+            <button
+              className={buttonClass + ' m2 self-center'}
+              onClick={() => {
+                const { token } = client.readQuery({ query: LOCAL_USER }).localUser
+                mutate({ variables: { token, gid: this.props.book.id } })
+                  .then(() => {
+                    this.props.history.push('/myBook')
+                  })
+              }}
+              type="submit"
+            >
+              <b>Add</b>
+            </button>
+          )
+        }}
+      </Mutation>
     )
   }
 })
