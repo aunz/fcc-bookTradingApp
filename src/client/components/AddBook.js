@@ -10,6 +10,7 @@ import client, {
   ADD_BOOK,
   LOCAL_USER,
   GET_BOOKS,
+  DEL_BOOK,
   SEARCH_GOOGLE_BOOK,
   VIEW_GOOGLE_BOOK
 } from '~/client/apolloClient'
@@ -285,6 +286,7 @@ const AddToMyBook = withRouter(class AddToMyBook extends PureComponent {
 export class MyBook extends PureComponent {
   state = {
     selectedBook: {},
+    showError: true,
   }
   viewMore(selectedBook) {
     this.setState({ selectedBook })
@@ -314,6 +316,31 @@ export class MyBook extends PureComponent {
             <Book
               book={selectedBook}
               close={() => { this.setState({ selectedBook: {} }) }}
+              renderItems={() => (
+                <Mutation
+                  mutation={DEL_BOOK}
+                >
+                  {(mutate, { loading, error }) => {
+                    if (error && this.state.showError) return ErrorButton({
+                      onClick: () => { this.setState({ showError: false }) },
+                      children: 'Oops something went wrong!'
+                    })
+                    if (loading) return <span className="m2 self-center">{spinner}</span>
+                    return (
+                      <button
+                        className={buttonClass + ' m2 self-center'}
+                        onClick={() => {
+                          const { token } = client.readQuery({ query: LOCAL_USER }).localUser
+                          mutate({ variables: { token, gid: selectedBook.book.id } })
+                        }}
+                        type="submit"
+                      >
+                        <b>Add</b>
+                      </button>
+                    )
+                  }}
+                </Mutation>
+              )}
             />
           )}
         </div>
