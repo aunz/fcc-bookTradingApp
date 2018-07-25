@@ -2,7 +2,7 @@
 A freeCodeCamp backend project
 
 Live at:
-https://fcc-aunz-booktrading-app.glitch.me/
+https://fcc-aunz-book-trading-app.glitch.me/
 
 Client
 - React, for components
