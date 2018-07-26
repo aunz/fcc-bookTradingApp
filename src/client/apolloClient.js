@@ -63,13 +63,13 @@ const client = new ApolloClient({
               }).catch(console.error)
           }).catch(() => null)
         },
-        getBooks() {
+        getBooks(_, { uid }) {
           return client.query({
             query: gql`query getBooksAndGBooks($uid: Int) {
               getGBooks { id, gid }
               getBooks(uid: $uid) { id, bid, uid, rid, status, ts }
             }`,
-            variables: { uid: client.readQuery({ query: LOCAL_USER }).localUser.uid },
+            variables: { uid },
             fetchPolicy: 'no-cache',
           }).then(({ data: { getGBooks, getBooks } }) => {
             return getBooks.map(book => {
@@ -173,6 +173,7 @@ export const UPDATE_DETAIL = gql`mutation updateDetail($token: String!, $key: Us
 `
 export const ADD_BOOK = gql`mutation addBook($token: String!, $gid: String!) {
   addBook(token: $token, gid: $gid) @connection(key: "noCache") {
+    id
     bid
     uid
     rid
@@ -182,10 +183,13 @@ export const ADD_BOOK = gql`mutation addBook($token: String!, $gid: String!) {
 }
 `
 
+export const DEL_BOOK = gql`mutation delBook($token: String!, $bid: Int!) {
+  delBook(token: $token, bid: $bid)
+}`
 
 export const GET_GBOOKS = gql`query getGBooks { id, gid }`
-export const GET_BOOKS = gql`query getBooks {
-  getBooks @client { id, gid, bid, uid, rid, status, ts }
+export const GET_BOOKS = gql`query getBooks($uid: Int) {
+  getBooks(uid: $uid) @client { id, gid, bid, uid, rid, status, ts }
 }`
 
 const f_gbook = gql`fragment f_gbook on GoogleBook {
