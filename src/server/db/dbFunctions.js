@@ -106,7 +106,7 @@ export function addBook(gid, uid) {
   const id = createEntity('book', { gid })
   const { lastInsertROWID } = db.prepare('insert into book_user (bid, uid, rid, status) values (?, ?, ?, 1)')
     .run(id, uid, uid)
-  return db.prepare('select * from book_user where rowid = ?').get(lastInsertROWID)
+  return db.prepare('select *, rowid as id from book_user where rowid = ?').get(lastInsertROWID)
 }
 
 // a user rid request a book bid
