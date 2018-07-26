@@ -79,7 +79,6 @@ export default class AddBook extends PureComponent {
   }
   refInput = React.createRef()
   render() {
-    // const { name, email, loc } = this.props.user
     const { q, data, loading, error, selectedBook } = this.state
     return (
       <div className="flex flex-column mx-auto">
@@ -245,13 +244,13 @@ const AddToMyBook = withRouter(class AddToMyBook extends PureComponent {
             query: GET_BOOKS,
             variables: { uid }
           })
-          data.getBooks.push({
-            id: 9999999, // just random temporary id
+          data.getBooks.unshift({
             ...mutationResult.data.addBook,
             gid: this.props.book.id,
           })
           proxyCache.writeQuery({
             query: GET_BOOKS,
+            variables: { uid },
             data
           })
         }}
@@ -286,10 +285,12 @@ const AddToMyBook = withRouter(class AddToMyBook extends PureComponent {
 export class MyBook extends PureComponent {
   state = {
     selectedBook: {},
+    selectedBid: null,
+    selectedId: null,
     showError: true,
   }
-  viewMore(selectedBook) {
-    this.setState({ selectedBook })
+  viewMore(selectedBook, selectedId, selectedBid) {
+    this.setState({ selectedBook, selectedId, selectedBid })
   }
   render() {
     const { selectedBook } = this.state
@@ -299,6 +300,7 @@ export class MyBook extends PureComponent {
         <div className="m2 flex flex-wrap">
           <Query
             query={GET_BOOKS}
+            variables={{ uid: client.readQuery({ query: LOCAL_USER }).localUser.id }}
             // fetchPolicy="network-only"
           >
             {({ loading, error, data }) => {
@@ -307,8 +309,16 @@ export class MyBook extends PureComponent {
                 children: 'Oops something went wrong!'
               })
               if (loading) return <span className="m1">{spinner}</span>
-              return (data.getBooks || []).map(({ id, gid }) => {
-                return <GBook key={id} gid={gid} onClick={e => this.viewMore(e) } />
+              return (data.getBooks || []).map(({ id, gid, bid }) => {
+                return (
+                  <GBook
+                    key={id}
+                    gid={gid}
+                    selectCB={book => {
+                      this.viewMore(book, id, bid)
+                    }}
+                  />
+                )
               })
             }}
           </Query>
@@ -319,6 +329,18 @@ export class MyBook extends PureComponent {
               renderItems={() => (
                 <Mutation
                   mutation={DEL_BOOK}
+                  update={proxyCache => {
+                    const { id: uid } = client.readQuery({ query: LOCAL_USER }).localUser
+                    const { selectedId: id } = this.state
+
+                    const getBooks = proxyCache.readQuery({
+                      query: GET_BOOKS,
+                      variables: { uid }
+                    }).getBooks.filter(b => b.id !== id)
+
+                    proxyCache.writeQuery({ query: GET_BOOKS, variables: { uid }, data: { getBooks } })
+                    this.setState({ selectedBook: {} })
+                  }}
                 >
                   {(mutate, { loading, error }) => {
                     if (error && this.state.showError) return ErrorButton({
@@ -331,11 +353,11 @@ export class MyBook extends PureComponent {
                         className={buttonClass + ' m2 self-center'}
                         onClick={() => {
                           const { token } = client.readQuery({ query: LOCAL_USER }).localUser
-                          mutate({ variables: { token, gid: selectedBook.book.id } })
+                          mutate({ variables: { token, bid: this.state.selectedBid } })
                         }}
                         type="submit"
                       >
-                        <b>Add</b>
+                        <b>DELETE</b>
                       </button>
                     )
                   }}
@@ -352,7 +374,7 @@ export class MyBook extends PureComponent {
 class GBook extends PureComponent {
   static propTypes = {
     gid: PropTypes.string.isRequired,
-    onClick: PropTypes.func,
+    selectCB: PropTypes.func,
   }
   state = {
     showError: true,
@@ -373,7 +395,7 @@ class GBook extends PureComponent {
             </div>
           )
           if (loading) return <div className={thumbClass}>{spinner}</div>
-          return <BookThumb data={data.viewGoogleBook} onClick={() => this.props.onClick(data.viewGoogleBook) }/>
+          return <BookThumb data={data.viewGoogleBook} onClick={() => { this.props.selectCB(data.viewGoogleBook) }} />
         }}
       </Query>
     )
