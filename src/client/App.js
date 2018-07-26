@@ -32,7 +32,7 @@ class App extends Component {
           return (
             <Fragment>
               <Header loggedIn={loggedIn} />
-              <div className="mx-auto" >
+              <div className="mx-auto">
                 <Switch>
                   <Route path="/login" render={() => loggedIn ? <Redirect to={this.preRoute} /> : <Login />} />
                   <Route path="/signup" render={() => loggedIn ? <Redirect to={this.preRoute} /> : <Signup />} />
