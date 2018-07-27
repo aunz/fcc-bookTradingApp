@@ -197,11 +197,19 @@ export const TRADE_BOOK = gql` mutation tradeBook($token: String!, $type: TradeT
   tradeBook(token: $token, type: $type, bid: $bid, rid: $rid)
 }
 `
+const f_bookUser = gql`fragment f_bookUser on BookUser { id, gid, bid, uid, rid, status, ts }`
 
 export const GET_GBOOKS = gql`query getGBooks { id, gid }`
 export const GET_BOOKS = gql`query getBooks($uid: Int) {
-  getBooks(uid: $uid) @client { id, gid, bid, uid, rid, status, ts }
+  getBooks(uid: $uid) @client { ...f_bookUser }
 }`
+
+export const GET_USER_REQS = gql`query getUserReqs(uid: Int!, all: Boolean = false) {
+  getUserReqs(uid: Int!, all: Boolean = false) { ...f_bookUser }
+}
+  ${f_bookUser}
+`
+
 
 const f_gbook = gql`fragment f_gbook on GoogleBook {
   id

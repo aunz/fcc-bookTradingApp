@@ -81,23 +81,23 @@ export function getBooks(uid) {
 }
 
 export function getBook(id) {
-  return db.prepare('select * from active_book where bid = ?').get(id)
+  return db.prepare('select *, rowid as id from active_book where bid = ?').get(id)
 }
 
 
 export function getReqsByBook(id, all = false) {
   all = all ? '' : 'and status is null'
-  return db.prepare('select * from book_user where bid = ? ' + all + ' order by rowid desc').all(id)
+  return db.prepare('select *, rowid as id from book_user where bid = ? ' + all + ' order by rowid desc').all(id)
 }
 
 export function getReqsByUser(id, all = false) { // all requests towards this user
   all = all ? '' : 'and status is null'
-  return db.prepare('select * from book_user where uid = ? ' + all + ' order by rowid desc').all(id)
+  return db.prepare('select *, rowid as id from book_user where uid = ? ' + all + ' order by rowid desc').all(id)
 }
 
 export function getUserReqs(id, all = false) { // all requests created by this user
   all = all ? '' : 'and status is null'
-  return db.prepare('select * from book_user where rid = ? ' + all + ' order by rowid desc').all(id)
+  return db.prepare('select *, rowid as id from book_user where rid = ? ' + all + ' order by rowid desc').all(id)
 }
 
 
