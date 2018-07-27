@@ -1,4 +1,4 @@
-import React, { Component, PureComponent } from 'react'
+import React, { Component, PureComponent, Fragment } from 'react'
 import { withRouter } from 'react-router'
 import PropTypes from 'prop-types'
 import { Query, Mutation } from 'react-apollo'
@@ -11,6 +11,7 @@ import client, {
   ADD_BOOK,
   LOCAL_USER,
   GET_BOOKS,
+  GET_REQS_BY_BOOK,
   DEL_BOOK,
   TRADE_BOOK,
   SEARCH_GOOGLE_BOOK,
@@ -39,7 +40,7 @@ export default class HomeBook extends PureComponent {
     this.setState({ selectedBook, selectedBid, selectedUid })
   }
   render() {
-    const { selectedBook, selectedUid } = this.state
+    const { selectedBook, selectedBid, selectedUid } = this.state
     return (
       <div className="flex flex-column mx-auto">
         <h3>Books for trade</h3>
@@ -79,35 +80,59 @@ export default class HomeBook extends PureComponent {
                 )
                 const { user } = this.props
                 const isOwner = user.id === selectedUid
-                if (isOwner) return <div className="m1">You own this book 😃</div>
                 return (
-                  <Mutation
-                    mutation={TRADE_BOOK}
-                    update={() => {
-                      this.setState({ selectedBook: {} })
-                    }}
+                  <Query
+                    query={GET_REQS_BY_BOOK}
+                    variables={{ bid: selectedBid }}
                   >
-                    {(mutate, { loading, error }) => {
-                      if (error && this.state.showError) return ErrorButton({
+                    {({ error: error2, loading: loading2, data: data2 }) => {
+                      if (error2 && this.state.showError) return ErrorButton({
                         onClick: () => { this.setState({ showError: false }) },
                         children: 'Oops something went wrong!'
                       })
-                      if (loading) return <span className="m2 self-center">{spinner}</span>
-                      console.log(user, selectedUid)
+                      if (loading2) return <span className="m1">{spinner}</span>
+                      const nRequest = (data2.getReqsByBook || []).length
+                      const userRequested = nRequest > 0 && data2.getReqsByBook.find(el => el.rid === user.id)
                       return (
-                        <button
-                          className={buttonClass + ' m2 self-center'}
-                          onClick={() => {
-                            const { token } = user
-                            mutate({ variables: { token, type: 'request', bid: this.state.selectedBid, rid: user.id } })
-                          }}
-                          type="submit"
-                        >
-                          <b>Request</b>
-                        </button>
+                        <Fragment>
+                          <div className="m1">
+                            {nRequest > 0 && nRequest + (nRequest === 1 ? ' person is' : ' people are') + ' requesting this book'}
+                          </div>
+                          {userRequested ? (
+                            <div className="m1">You have requested this book on {new Date(userRequested.ts * 1000).toDateString()} {new Date(userRequested.ts * 1000).toLocaleTimeString()} 😃</div>
+                          ) : (
+                            <Mutation
+                              mutation={TRADE_BOOK}
+                              update={() => {
+                                this.setState({ selectedBook: {} })
+                              }}
+                            >
+                              {(mutate, { loading, error }) => {
+                                if (error && this.state.showError) return ErrorButton({
+                                  onClick: () => { this.setState({ showError: false }) },
+                                  children: 'Oops something went wrong!'
+                                })
+                                if (loading) return <span className="m2 self-center">{spinner}</span>
+                                return (
+                                  <button
+                                    className={buttonClass + ' m2 self-center'}
+                                    onClick={() => {
+                                      const { token } = user
+                                      mutate({ variables: { token, type: 'request', bid: this.state.selectedBid, rid: user.id } })
+                                      this.setState({ showError: true })
+                                    }}
+                                    type="submit"
+                                  >
+                                    <b>Request</b>
+                                  </button>
+                                )
+                              }}
+                            </Mutation>
+                          )}
+                        </Fragment>
                       )
                     }}
-                  </Mutation>
+                  </Query>
                 )
               }}
             />
@@ -121,10 +146,10 @@ export class AddBook extends PureComponent {
   static propTypes = userPropTypes
   constructor(props) {
     super(props)
-    client.query({ // this query is important so can later use client.readQuery
-      query: GET_BOOKS,
-      variables: { uid: this.props.user.id }
-    })
+    const { id: uid } = this.props.user
+    // this query is important so can later use client.readQuery
+    client.query({ query: GET_BOOKS, variables: { uid } })
+    client.query({ query: GET_USER_REQS, variables: { uid } })
   }
   state = {
     data: require('~/tmp/google book.json').items.map(el => {
@@ -282,7 +307,7 @@ class Book extends PureComponent {
         className={'my3 mx-auto p2 fixed flex items-start bg-white border rounded border-silver ' + css({ overflowY: 'auto' })}
         style={{ top: 0, right: 0, bottom: 0, left: 0, maxWidth: '60rem' }}
       >
-        <div className="flex flex-column mr1">
+        <div className="flex flex-column mr1" style={{ width: '8rem' }}>
           <img src={smallThumbnail} alt="" />
           {this.props.renderItems(this.props, this.state)}
         </div>
