@@ -82,14 +82,20 @@ const client = new ApolloClient({
         },
         searchGoogleBook(_, { q }) {
           q = encodeURIComponent(q)
-          return fetch('https://www.googleapis.com/books/v1/volumes?maxResults=40&q=' + q)
-            .then(r => r.json())
-            .then(r => {
-              return r.items.map(trimGoogleBook)
+          return client.query({ query: G_BOOK_API })
+            .then(data => {
+              const key = data.getGGAPI
+              return fetch('https://www.googleapis.com/books/v1/volumes?maxResults=40&key=' + key + '&q=' + q)
             })
+            .then(r => r.json())
+            .then(r => r.items.map(trimGoogleBook))
         },
         viewGoogleBook(_, { id }) {
-          return fetch('https://www.googleapis.com/books/v1/volumes/' + id)
+          return client.query({ query: G_BOOK_API })
+            .then(data => {
+              const key = data.getGGAPI
+              return fetch('https://www.googleapis.com/books/v1/volumes/' + id + '&key=' + key)
+            })
             .then(r => r.json())
             .then(trimGoogleBook)
         }
@@ -206,6 +212,8 @@ const f_gbook = gql`fragment f_gbook on GoogleBook {
 }
 `
 
+const G_BOOK_API = gql`{ getGGAPI }`
+
 export const SEARCH_GOOGLE_BOOK = gql`query searchGoogleBook($q: String!) {
   searchGoogleBook(q: $q) @client {
     ...f_gbook
@@ -223,6 +231,7 @@ export const VIEW_GOOGLE_BOOK = gql`query viewGoogleBook($id: String!) {
 
 
 function trimGoogleBook(el) {
+  if (el.error) throw new Error('Google Book API encountered an error')
   const { volumeInfo: v } = el
   const { imageLinks: { smallThumbnail = '' } = {} } = v
   const item = {

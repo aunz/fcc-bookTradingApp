@@ -9,6 +9,8 @@ import {
 
 import { errInput, errAuth } from '~/server/errors'
 
+const { GG_BOOK_API } = process.env
+
 export default {
   Query: {
     getGBooks() { return getGBooks() },
@@ -17,6 +19,7 @@ export default {
     getReqsByBook(_, { bid, all }) { return getReqsByBook(bid, all) },
     getReqsByUser(_, { rid, all }) { return getReqsByUser(rid, all) }, // all requests created by this user
     getUserReqs(_, { uid, all }) { return getUserReqs(uid, all) }, // all requests towards this user
+    getGGAPI() { return GG_BOOK_API }
   },
   Mutation: {
     signup(_, { name = '', email, loc = '', pw }) {
