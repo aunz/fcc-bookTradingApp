@@ -55,6 +55,7 @@ module.exports = {
     curly: 0,
     'no-confusing-arrow': 0,
     'jsx-a11y/label-has-for': 0,
+    'jsx-a11y/accessible-emoji': 0,
     'jsx-a11y/anchor-is-valid': [ 'error', {
       'components': ['Link'],
       'specialLink': ['to']
