@@ -2,6 +2,7 @@ import React, { Component, PureComponent } from 'react'
 import { withRouter } from 'react-router'
 import PropTypes from 'prop-types'
 import { Query, Mutation } from 'react-apollo'
+import { Link } from 'react-router-dom'
 
 import { userPropTypes } from './User'
 import { css } from 'emotion'
@@ -11,6 +12,7 @@ import client, {
   LOCAL_USER,
   GET_BOOKS,
   DEL_BOOK,
+  TRADE_BOOK,
   SEARCH_GOOGLE_BOOK,
   VIEW_GOOGLE_BOOK
 } from '~/client/apolloClient'
@@ -20,13 +22,110 @@ import {
   buttonFlatClass,
   inputClass,
   spinner,
-  ErrorButton
+  ErrorButton,
 } from './common'
 
 const font = { fontFamily: 'fontello' }
 
-export default class AddBook extends PureComponent {
+export default class HomeBook extends PureComponent {
   static propTypes = userPropTypes
+  state = {
+    selectedBook: {},
+    selectedBid: null,
+    selectedUid: null,
+    showError: true,
+  }
+  viewMore(selectedBook, selectedBid, selectedUid) {
+    this.setState({ selectedBook, selectedBid, selectedUid })
+  }
+  render() {
+    const { selectedBook, selectedUid } = this.state
+    return (
+      <div className="flex flex-column mx-auto">
+        <h3>Books for trade</h3>
+        <div className="m2 flex flex-wrap">
+          <Query
+            query={GET_BOOKS}
+            // fetchPolicy="network-only"
+          >
+            {({ loading, error, data }) => {
+              if (error && this.state.showError) return ErrorButton({
+                onClick: () => { this.setState({ showError: false }) },
+                children: 'Oops something went wrong!'
+              })
+              if (loading) return <span className="m1">{spinner}</span>
+              return (data.getBooks || []).map(({ id, gid, bid, uid }) => {
+                return (
+                  <GBook
+                    key={id}
+                    gid={gid}
+                    selectCB={book => {
+                      this.viewMore(book, bid, uid)
+                    }}
+                  />
+                )
+              })
+            }}
+          </Query>
+          {selectedBook.id && (
+            <Book
+              book={selectedBook}
+              close={() => { this.setState({ selectedBook: {} }) }}
+              renderItems={() => {
+                if (!this.props.user) return (
+                  <div className="m1 center">
+                    To request this book, please <Link className="decoration-none bold" to="/login">login</Link>
+                  </div>
+                )
+                const { user } = this.props
+                const isOwner = user.id === selectedUid
+                if (isOwner) return <div className="m1">You own this book 😃</div>
+                return (
+                  <Mutation
+                    mutation={TRADE_BOOK}
+                    update={() => {
+                      this.setState({ selectedBook: {} })
+                    }}
+                  >
+                    {(mutate, { loading, error }) => {
+                      if (error && this.state.showError) return ErrorButton({
+                        onClick: () => { this.setState({ showError: false }) },
+                        children: 'Oops something went wrong!'
+                      })
+                      if (loading) return <span className="m2 self-center">{spinner}</span>
+                      console.log(user, selectedUid)
+                      return (
+                        <button
+                          className={buttonClass + ' m2 self-center'}
+                          onClick={() => {
+                            const { token } = user
+                            mutate({ variables: { token, type: 'request', bid: this.state.selectedBid, rid: user.id } })
+                          }}
+                          type="submit"
+                        >
+                          <b>Request</b>
+                        </button>
+                      )
+                    }}
+                  </Mutation>
+                )
+              }}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
+}
+export class AddBook extends PureComponent {
+  static propTypes = userPropTypes
+  constructor(props) {
+    super(props)
+    client.query({ // this query is important so can later use client.readQuery
+      query: GET_BOOKS,
+      variables: { uid: this.props.user.id }
+    })
+  }
   state = {
     data: require('~/tmp/google book.json').items.map(el => {
       const { volumeInfo: v } = el
@@ -309,7 +408,7 @@ export class MyBook extends PureComponent {
                 children: 'Oops something went wrong!'
               })
               if (loading) return <span className="m1">{spinner}</span>
-              return (data.getBooks || []).map(({ id, gid, bid }) => {
+              return (data.getBooks || []).map(({ id, gid, bid, uid }) => {
                 return (
                   <GBook
                     key={id}

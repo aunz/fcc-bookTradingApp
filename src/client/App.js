@@ -7,7 +7,7 @@ import './styles/index.css'
 import Header from './components/Header'
 import Login, { Signup } from './components/Login'
 import User from './components/User'
-import AddBook, { MyBook } from './components/AddBook'
+import HomeBook, { AddBook, MyBook } from './components/AddBook'
 import MyRequest from './components/MyRequest'
 
 import {
@@ -34,6 +34,7 @@ class App extends Component {
               <Header loggedIn={loggedIn} />
               <div className="mx-auto">
                 <Switch>
+                  <Route path="/" exact render={() => <HomeBook user={localUser} />} />
                   <Route path="/login" render={() => loggedIn ? <Redirect to={this.preRoute} /> : <Login />} />
                   <Route path="/signup" render={() => loggedIn ? <Redirect to={this.preRoute} /> : <Signup />} />
                   <Route path="/user" render={() => !loggedIn ? <Redirect to="/login" /> : <User user={localUser} />} />
@@ -51,4 +52,3 @@ class App extends Component {
 }
 
 export default withRouter(App)
-

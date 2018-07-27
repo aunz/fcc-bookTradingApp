@@ -83,7 +83,7 @@ const client = new ApolloClient({
         searchGoogleBook(_, { q }) {
           q = encodeURIComponent(q)
           return client.query({ query: G_BOOK_API })
-            .then(data => {
+            .then(({ data }) => {
               const key = data.getGGAPI
               return fetch('https://www.googleapis.com/books/v1/volumes?maxResults=40&key=' + key + '&q=' + q)
             })
@@ -92,9 +92,9 @@ const client = new ApolloClient({
         },
         viewGoogleBook(_, { id }) {
           return client.query({ query: G_BOOK_API })
-            .then(data => {
+            .then(({ data }) => {
               const key = data.getGGAPI
-              return fetch('https://www.googleapis.com/books/v1/volumes/' + id + '&key=' + key)
+              return fetch('https://www.googleapis.com/books/v1/volumes/' + id + '?key=' + key)
             })
             .then(r => r.json())
             .then(trimGoogleBook)
@@ -192,6 +192,11 @@ export const ADD_BOOK = gql`mutation addBook($token: String!, $gid: String!) {
 export const DEL_BOOK = gql`mutation delBook($token: String!, $bid: Int!) {
   delBook(token: $token, bid: $bid)
 }`
+
+export const TRADE_BOOK = gql` mutation tradeBook($token: String!, $type: TradeType!, $bid: Int!, $rid: Int) {
+  tradeBook(token: $token, type: $type, bid: $bid, rid: $rid)
+}
+`
 
 export const GET_GBOOKS = gql`query getGBooks { id, gid }`
 export const GET_BOOKS = gql`query getBooks($uid: Int) {
