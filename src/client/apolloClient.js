@@ -206,10 +206,20 @@ export const GET_BOOKS = gql`query getBooks($uid: Int) {
   ${f_bookUser}
 `
 
-export const GET_REQS_BY_BOOK = gql`query getReqsByBook($bid: Int!) {
-  getReqsByBook(bid: $bid) { id, bid, uid, rid, status, ts }
-}`
+const f_bookUser2 = gql`fragment f_bookUser2 on BookUser { id, bid, uid, rid, status, ts }`
 
+export const GET_REQS_BY_BOOK = gql`query getReqsByBook($bid: Int!) {
+  getReqsByBook(bid: $bid) { ...f_bookUser2 }
+}
+  ${f_bookUser2}
+`
+
+export const GET_REQS = gql`query getReqsByUser($id: Int!) {
+  getReqsByUser(rid: $id) { ...f_bookUser2 }
+  getUserReqs(uid: $id) { ...f_bookUser2 }
+}
+  ${f_bookUser2}
+`
 
 const f_gbook = gql`fragment f_gbook on GoogleBook {
   id
