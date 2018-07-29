@@ -26,6 +26,7 @@ export function ErrorButton(props) {
     <button
       className={buttonFlatClass + ' red icon-cancel'}
       onClick={props.onClick}
+      type="button"
     >
       {props.children}
     </button>
