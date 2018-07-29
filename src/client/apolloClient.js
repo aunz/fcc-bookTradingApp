@@ -39,11 +39,16 @@ const client = new ApolloClient({
         previewLink: String
         smallThumbnail: String
       }
+      type BookReq {
+        reqsByUser: [BookUser]!
+        userReqs: [BookUser]!
+      }
       type Query {
         localUser: User
-        searchGoogleBook(q: String!) [GoogleBook]
-        viewGoogleBook(id: String!) GoogleBook
-        getBooks(uid: Int) [BookUser]!
+        searchGoogleBook(q: String!): [GoogleBook]
+        viewGoogleBook(id: String!): GoogleBook
+        getBooks(uid: Int): [BookUser]!
+        getReqs(id: Int!): [BookUser]!
       }
       type Mutation {
         updateLocalUser(id: Int!, name: String, email: String, loc: String, token: String, logout: Bool): Bool
@@ -67,10 +72,9 @@ const client = new ApolloClient({
           return client.query({
             query: gql`query getBooksAndGBooks($uid: Int) {
               getGBooks { id, gid }
-              getBooks(uid: $uid) { id, bid, uid, rid, status, ts }
-            }`,
+              getBooks(uid: $uid) { ...f_bookUser2 }
+            } ${f_bookUser2}`,
             variables: { uid },
-            fetchPolicy: 'no-cache',
           }).then(({ data: { getGBooks, getBooks } }) => {
             return getBooks.map(book => {
               return {
@@ -78,6 +82,28 @@ const client = new ApolloClient({
                 gid: getGBooks.find(gBook => gBook.id === book.bid).gid
               }
             })
+          })
+        },
+        getReqs(_, { id }) {
+          return client.query({
+            query: gql`query getBooksAndGBooks($id: Int!) {
+              getGBooks { id, gid }
+              getReqsByUser(rid: $id) { ...f_bookUser2 }
+              getUserReqs(uid: $id) { ...f_bookUser2 }
+            } ${f_bookUser2}`,
+            variables: { id },
+          }).then(({ data: { getGBooks, getReqsByUser, getUserReqs } }) => {
+            function helper(book) {
+              return {
+                ...book,
+                gid: getGBooks.find(gBook => gBook.id === book.bid).gid
+              }
+            }
+            return {
+              reqsByUser: getReqsByUser.map(helper),
+              userReqs: getUserReqs.map(helper),
+              __typename: 'BookReq'
+            }
           })
         },
         searchGoogleBook(_, { q }) {
@@ -214,12 +240,18 @@ export const GET_REQS_BY_BOOK = gql`query getReqsByBook($bid: Int!) {
   ${f_bookUser2}
 `
 
-export const GET_REQS = gql`query getReqsByUser($id: Int!) {
-  getReqsByUser(rid: $id) { ...f_bookUser2 }
-  getUserReqs(uid: $id) { ...f_bookUser2 }
+export const GET_REQS = gql`query getReqs($id: Int!) {
+  getReqs(id: $id) @client {
+    reqsByUser { ...f_bookUser }
+    userReqs { ...f_bookUser }
+  }
 }
-  ${f_bookUser2}
+  ${f_bookUser}
 `
+
+export const GET_USER_DETAIL = gql`query getUserDetail($id: Int!) {
+  getUserDetail(id: $id) { id, name, loc }
+}`
 
 const f_gbook = gql`fragment f_gbook on GoogleBook {
   id

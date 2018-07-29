@@ -299,7 +299,7 @@ BookThumb.propTypes = {
   onClick: PropTypes.func,
 }
 
-class Book extends PureComponent {
+export class Book extends PureComponent {
   static propTypes = {
     book: PropTypes.object, // eslint-disable-line
     close: PropTypes.func,
@@ -324,7 +324,7 @@ class Book extends PureComponent {
       >
         <div className="flex flex-column mr1" style={{ width: '8rem' }}>
           <img src={smallThumbnail} alt="" />
-          {this.props.renderItems(this.props, this.state)}
+          {this.props.renderItems && this.props.renderItems(this.props, this.state)}
         </div>
         <div className="m1 flex-auto">
           <h3 className="mt0">{title}</h3>
@@ -529,10 +529,12 @@ export class MyBook extends PureComponent {
   }
 }
 
-class GBook extends PureComponent {
+export class GBook extends PureComponent {
   static propTypes = {
     gid: PropTypes.string.isRequired,
     selectCB: PropTypes.func,
+    render: PropTypes.func,
+    children: PropTypes.func,
   }
   state = {
     showError: true,
@@ -552,8 +554,10 @@ class GBook extends PureComponent {
               })}
             </div>
           )
-          if (loading) return <div className={thumbClass}>{spinner}</div>
-          return <BookThumb data={data.viewGoogleBook} onClick={() => { this.props.selectCB(data.viewGoogleBook) }} />
+          const { render, children, selectCB } = this.props
+          const child = children || render // children take precedence
+          if (loading) return <div className={child ? '' : thumbClass}>{spinner}</div>
+          return child ? child(data.viewGoogleBook) : <BookThumb data={data.viewGoogleBook} onClick={() => { selectCB(data.viewGoogleBook) }} />
         }}
       </Query>
     )
