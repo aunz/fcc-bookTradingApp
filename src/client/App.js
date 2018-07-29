@@ -10,11 +10,16 @@ import User from './components/User'
 import HomeBook, { AddBook, MyBook } from './components/AddBook'
 import MyRequest from './components/MyRequest'
 
-import {
+import client, {
   LOCAL_USER,
+  GET_BOOKS,
 } from './apolloClient'
 
 class App extends Component {
+  constructor(props) {
+    super(props)
+    client.query({ query: GET_BOOKS })
+  }
   render() {
     return (
       <Query
