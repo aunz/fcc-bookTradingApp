@@ -2,7 +2,8 @@ import isEmail from 'validator/lib/isEmail'
 import normalizeEmail from 'validator/lib/normalizeEmail'
 
 import {
-  createUser, getUserWithPW, updateUser, getAndUpdateUserFromToken,
+  createUser, getUserWithPW, getUserWithId,
+  updateUser, getAndUpdateUserFromToken,
   addBook, requestBook, actBook, delBook,
   getGBooks, getBooks, getBook, getReqsByUser, getUserReqs, getReqsByBook,
 } from '~/server/db/dbFunctions'
@@ -19,7 +20,8 @@ export default {
     getReqsByBook(_, { bid, all }) { return getReqsByBook(bid, all) },
     getReqsByUser(_, { rid, all }) { return getReqsByUser(rid, all) }, // all requests created by this user
     getUserReqs(_, { uid, all }) { return getUserReqs(uid, all) }, // all requests towards this user
-    getGGAPI() { return GG_BOOK_API }
+    getGGAPI() { return GG_BOOK_API },
+    getUserDetail(_, { id }) { return getUserWithId(id) }
   },
   Mutation: {
     signup(_, { name = '', email, loc = '', pw }) {

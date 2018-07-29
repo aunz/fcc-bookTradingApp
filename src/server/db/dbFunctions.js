@@ -23,6 +23,11 @@ export function getUserWithPW(email, pw) {
   })
 }
 
+export function getUserWithId(id) {
+  // very important, only return id, name, loc, no email, no token
+  return db.prepare('select id, name, loc from "user" where id = ?').get(id)
+}
+
 export function updateUser(id, object) {
   if ('token' in object) {
     if (!object.token) { // object.token == undefined, null, 0, ''

@@ -5,6 +5,7 @@ type Query {
   getReqsByBook(bid: Int!, all: Boolean = false): [BookUser]!
   getReqsByUser(rid: Int!, all: Boolean = false): [BookUser]!
   getUserReqs(uid: Int!, all: Boolean = false): [BookUser]!
+  getUserDetail(id: Int!): User # will not return email, token
   getGGAPI: String!
 }
 
