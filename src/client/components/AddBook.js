@@ -80,6 +80,7 @@ export default class HomeBook extends PureComponent {
                 )
                 const { user } = this.props
                 const isOwner = user.id === selectedUid
+                if (isOwner) return <div className="m1 center">You own this book 😃</div>
                 return (
                   <Query
                     query={GET_REQS_BY_BOOK}
@@ -99,11 +100,26 @@ export default class HomeBook extends PureComponent {
                             {nRequest > 0 && nRequest + (nRequest === 1 ? ' person is' : ' people are') + ' requesting this book'}
                           </div>
                           {userRequested ? (
-                            <div className="m1">You have requested this book on {new Date(userRequested.ts * 1000).toDateString()} {new Date(userRequested.ts * 1000).toLocaleTimeString()} 😃</div>
+                            <div className="m1">You requested this book on {new Date(userRequested.ts * 1000).toDateString()} {new Date(userRequested.ts * 1000).toLocaleTimeString()} 😃</div>
                           ) : (
                             <Mutation
                               mutation={TRADE_BOOK}
                               update={() => {
+                                const data = client.readQuery({ query: GET_REQS_BY_BOOK, variables: { bid: selectedBid } })
+                                data.getReqsByBook.push({
+                                  __typename: 'BookUser',
+                                  id: -1,
+                                  bid: selectedBid,
+                                  uid: selectedUid,
+                                  rid: user.id,
+                                  status: null,
+                                  ts: Date.now() / 1000
+                                })
+                                client.writeQuery({
+                                  query: GET_REQS_BY_BOOK,
+                                  variables: { bid: selectedBid },
+                                  data
+                                })
                                 this.setState({ selectedBook: {} })
                               }}
                             >
@@ -149,7 +165,6 @@ export class AddBook extends PureComponent {
     const { id: uid } = this.props.user
     // this query is important so can later use client.readQuery
     client.query({ query: GET_BOOKS, variables: { uid } })
-    client.query({ query: GET_USER_REQS, variables: { uid } })
   }
   state = {
     data: require('~/tmp/google book.json').items.map(el => {
@@ -364,18 +379,30 @@ const AddToMyBook = withRouter(class AddToMyBook extends PureComponent {
         mutation={ADD_BOOK}
         update={(proxyCache, mutationResult) => {
           const { id: uid } = client.readQuery({ query: LOCAL_USER }).localUser
-          const data = proxyCache.readQuery({
+          const data1 = proxyCache.readQuery({
             query: GET_BOOKS,
             variables: { uid }
           })
-          data.getBooks.unshift({
+          data1.getBooks.unshift({
             ...mutationResult.data.addBook,
             gid: this.props.book.id,
           })
           proxyCache.writeQuery({
             query: GET_BOOKS,
             variables: { uid },
-            data
+            data: data1
+          })
+
+          const data2 = proxyCache.readQuery({
+            query: GET_BOOKS,
+          })
+          data2.getBooks.unshift({
+            ...mutationResult.data.addBook,
+            gid: this.props.book.id,
+          })
+          proxyCache.writeQuery({
+            query: GET_BOOKS,
+            data: data2
           })
         }}
       >
@@ -463,6 +490,13 @@ export class MyBook extends PureComponent {
                     }).getBooks.filter(b => b.id !== id)
 
                     proxyCache.writeQuery({ query: GET_BOOKS, variables: { uid }, data: { getBooks } })
+
+                    const getBooks2 = proxyCache.readQuery({
+                      query: GET_BOOKS,
+                    }).getBooks.filter(b => b.id !== id)
+
+                    proxyCache.writeQuery({ query: GET_BOOKS, data: { getBooks: getBooks2 } })
+
                     this.setState({ selectedBook: {} })
                   }}
                 >
