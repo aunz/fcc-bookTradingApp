@@ -1,4 +1,4 @@
-import React, { Component, PureComponent, Fragment } from 'react'
+import React, { PureComponent, Fragment } from 'react'
 import { withRouter } from 'react-router'
 import PropTypes from 'prop-types'
 import { Query, Mutation } from 'react-apollo'
@@ -350,7 +350,7 @@ export class Book extends PureComponent {
             <br />
             {pageCount}
           </h4>
-          <a className="decoration-none" href={previewLink} target="_blank" rel="noopener" >Preview</a>
+          <a className="decoration-none" href={previewLink} target="_blank" rel="noopener noreferrer">Preview</a>
         </div>
         <button
           className={buttonFlatClass}
@@ -402,7 +402,6 @@ const AddToMyBook = withRouter(class AddToMyBook extends PureComponent {
           }
 
           proxyCache.writeQuery(q2)
-
         }}
       >
         {(mutate, { loading, error }) => {
@@ -459,7 +458,7 @@ export class MyBook extends PureComponent {
                 children: 'Oops something went wrong!'
               })
               if (loading) return <span className="m1">{spinner}</span>
-              return (data.getBooks || []).map(({ id, gid, bid, uid }) => {
+              return (data.getBooks || []).map(({ id, gid, bid }) => {
                 return (
                   <GBook
                     key={id}
