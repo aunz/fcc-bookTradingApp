@@ -28,8 +28,8 @@ export function errInput(message = '') {
   })
 }
 
-export function errAuth() {
-  return cusError('Unauthorized', {
+export function errAuth(message = '') {
+  return cusError('Unauthorized: ' + message, {
     statusCode: 401,
     constructorOpt: errAuth
   })
