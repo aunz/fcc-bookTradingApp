@@ -97,7 +97,7 @@ export function getReqsByBook(id, all = false) {
 
 export function getReqsByUser(id, all = false) { // all requests towards this user
   all = all ? '' : 'and status is null'
-  return db.prepare('select *, rowid as id from book_user where uid = ? ' + all + ' order by rowid desc').all(id)
+  return db.prepare('select *, rowid as id from book_user where uid = ? ' + all + ' order by rowid ').all(id)
 }
 
 export function getUserReqs(id, all = false) { // all requests created by this user
