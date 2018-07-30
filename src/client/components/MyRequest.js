@@ -1,9 +1,5 @@
-import React, { Component, PureComponent, Fragment } from 'react'
-import PropTypes from 'prop-types'
-import { Switch, Route, Redirect, withRouter } from 'react-router'
+import React, { PureComponent, Fragment } from 'react'
 import { Query, Mutation } from 'react-apollo'
-import { Link } from 'react-router-dom'
-import { css } from 'emotion'
 
 import {
   buttonFlatClass,
@@ -16,15 +12,8 @@ import { userPropTypes } from './User'
 
 import { GBook, Book } from './AddBook'
 
-import client, {
-  // ADD_BOOK,
-  // LOCAL_USER,
-  // GET_BOOKS,
-  // GET_REQS_BY_BOOK,
-  // DEL_BOOK,
-  // TRADE_BOOK,
-  // SEARCH_GOOGLE_BOOK,
-  // VIEW_GOOGLE_BOOK
+import {
+  GET_BOOKS,
   GET_REQS,
   GET_USER_DETAIL,
   TRADE_BOOK,
@@ -38,13 +27,13 @@ export default class MyRequest extends PureComponent {
   }
   render() {
     const { selectedBook } = this.state
-    console.log(selectedBook)
+    const { user } = this.props
     return (
       <div className="flex flex-column mx-auto">
         <h3>My requests</h3>
         <Query
           query={GET_REQS}
-          variables={{ id: this.props.user.id }}
+          variables={{ id: user.id }}
         >
           {({ data: { getReqs: { reqsByUser, userReqs } = {} }, loading, error }) => {
             if (error && this.state.showError) return ErrorButton({
@@ -55,8 +44,8 @@ export default class MyRequest extends PureComponent {
             return (
               <Fragment>
                 <div>
-                  <h4>Books you requested</h4>
-                  {reqsByUser.map(book => {
+                  <h4>Books you requested from other traders</h4>
+                  {(userReqs || []).map(book => {
                     return (
                       <GBook
                         key={book.id}
@@ -80,6 +69,13 @@ export default class MyRequest extends PureComponent {
                               <span>{d.title}</span>
                               <small className="silver my-auto">Requested on {new Date(book.ts * 1000).toDateString()}</small>
                             </div>
+                            <div
+                              className="flex flex-column mx1 px1 center "
+                              style={{ borderLeft: '1px solid silver', borderRight: '1px solid silver' }}
+                            >
+                              <span>Status</span>
+                              <span className="my-auto bold">{book.status === 0 ? 'Declined' : (book.status ? 'Received' : 'Waiting') }</span>
+                            </div>
                           </div>
                         )}
                       </GBook>
@@ -87,8 +83,8 @@ export default class MyRequest extends PureComponent {
                   })}
                 </div>
                 <div>
-                  <h4>Books other people requested from you</h4>
-                  {userReqs.map(book => {
+                  <h4>Books other traders requested from you</h4>
+                  {(reqsByUser || []).map(book => {
                     return (
                       <GBook
                         key={book.id}
@@ -97,7 +93,7 @@ export default class MyRequest extends PureComponent {
                         {d => (
                           <Query
                             query={GET_USER_DETAIL}
-                            variables={{ id: book.uid }}
+                            variables={{ id: book.rid }}
                           >
                             {({ data: { getUserDetail }, loading: loading2, error: error2 }) => {
                               if (error2 && this.state.showError) return ErrorButton({
@@ -105,8 +101,9 @@ export default class MyRequest extends PureComponent {
                                 children: 'Oops something went wrong!'
                               })
                               if (loading2) return <span className="m1">{spinner}</span>
-                              return (
-                                <div className="flex m1 my2">
+
+                              const base = (
+                                <Fragment>
                                   <button
                                     className={buttonFlatClass + ' flex justify-center'}
                                     style={{ width: '3rem' }}
@@ -130,34 +127,61 @@ export default class MyRequest extends PureComponent {
                                     <span>Requested by</span>
                                     <span className="my-auto">{getUserDetail && getUserDetail.name}</span>
                                   </div>
-                                  <Mutation
-                                    mutation={TRADE_BOOK}
-                                    variables={{
-                                      type: 'accept',
-                                      token: this.props.user.token,
-                                      bid: book.bid,
-                                      rid: book.rid,
-                                    }}
-                                  >
-                                    {(mutate, { loading: loading3, error: error3 }) => {
-                                      if (error3 && this.state.showError) return ErrorButton({
-                                        onClick: () => { this.setState({ showError: false }) },
-                                        children: 'Oops something went wrong!'
-                                      })
-                                      if (loading3) return <span className="m1">{spinner}</span>
-                                      return (
-                                        <button
-                                          className={buttonClass + ' mr1'}
-                                          type="button"
-                                          onClick={() => {
-                                            mutate()
-                                          }}
-                                        >
-                                          Accept
-                                        </button>
-                                      )
-                                    }}
-                                  </Mutation>
+                                </Fragment>
+                              )
+
+                              const status = book.status !== null
+                                ? <div className="my-auto">You {book.status ? 'accepted' : 'declined'} this trade</div>
+                                : (
+                                  <Fragment>
+                                    <Mutation
+                                      mutation={TRADE_BOOK}
+                                      refetchQueries={() => [
+                                        { query: GET_REQS, variables: { id: user.id } },
+                                        { query: GET_BOOKS }, // not very efficient, but needed for now
+                                        { query: GET_BOOKS, variables: { uid: user.id } }
+                                      ]}
+                                    >
+                                      {(mutate, { loading: loading3, error: error3 }) => {
+                                        if (error3 && this.state.showError) return ErrorButton({
+                                          onClick: () => { this.setState({ showError: false }) },
+                                          children: 'Oops something went wrong!'
+                                        })
+                                        if (loading3) return <span className="m1">{spinner}</span>
+                                        const variables = { token: user.token, bid: book.bid, rid: book.rid }
+                                        const className = buttonClass + ' mx1 '
+                                        return (
+                                          <Fragment>
+                                            <button
+                                              className={className}
+                                              type="button"
+                                              onClick={() => {
+                                                variables.type = 'accept'
+                                                mutate({ variables })
+                                              }}
+                                            >
+                                              Accept
+                                            </button>
+                                            <button
+                                              className={className + ' border-red '}
+                                              type="button"
+                                              onClick={() => {
+                                                variables.type = 'decline'
+                                                mutate({ variables })
+                                              }}
+                                            >
+                                              Decline
+                                            </button>
+                                          </Fragment>
+                                        )
+                                      }}
+                                    </Mutation>
+                                  </Fragment>
+                                )
+                              return (
+                                <div className="flex m1 my2">
+                                  {base}
+                                  {status}
                                 </div>
                               )
                             }}

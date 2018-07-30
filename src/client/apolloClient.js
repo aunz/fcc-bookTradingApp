@@ -6,10 +6,10 @@ import { get, set, del } from 'idb-keyval'
 
 
 const client = new ApolloClient({
-  defaults: {
-    getBooks: []
-  },
   clientState: {
+    defaults: {
+      getBooks: []
+    },
     typeDefs: `
       type User {
         id: Int!
@@ -48,7 +48,7 @@ const client = new ApolloClient({
         searchGoogleBook(q: String!): [GoogleBook]
         viewGoogleBook(id: String!): GoogleBook
         getBooks(uid: Int): [BookUser]!
-        getReqs(id: Int!): [BookUser]!
+        getReqs(id: Int!, all: Bool): [BookUser]!
       }
       type Mutation {
         updateLocalUser(id: Int!, name: String, email: String, loc: String, token: String, logout: Bool): Bool
@@ -75,6 +75,7 @@ const client = new ApolloClient({
               getBooks(uid: $uid) { ...f_bookUser2 }
             } ${f_bookUser2}`,
             variables: { uid },
+            fetchPolicy: 'no-cache',
           }).then(({ data: { getGBooks, getBooks } }) => {
             return getBooks.map(book => {
               return {
@@ -86,12 +87,13 @@ const client = new ApolloClient({
         },
         getReqs(_, { id }) {
           return client.query({
-            query: gql`query getBooksAndGBooks($id: Int!) {
+            query: gql`query getBooksAndGBooks($id: Int!, $all: Boolean) {
               getGBooks { id, gid }
-              getReqsByUser(rid: $id) { ...f_bookUser2 }
-              getUserReqs(uid: $id) { ...f_bookUser2 }
+              getReqsByUser(rid: $id, all: $all) { ...f_bookUser2 }
+              getUserReqs(uid: $id, all: $all) { ...f_bookUser2 }
             } ${f_bookUser2}`,
-            variables: { id },
+            variables: { id, all: true },
+            fetchPolicy: 'no-cache',
           }).then(({ data: { getGBooks, getReqsByUser, getUserReqs } }) => {
             function helper(book) {
               return {
