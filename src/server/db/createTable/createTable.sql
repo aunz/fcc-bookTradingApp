@@ -87,7 +87,7 @@ create trigger book_user_before_update
     --   then raise(abort, 'Cannot update bid, uid or rid') end;
     select case
       when new.status is null
-      then raise(abort, 'Cannot set status to null') end;
+      then raise(abort, 'Status cannot be set to null') end;
     select case
       when old.status is not null and new.status is not old.status
       then raise(abort, 'Status cannot be changed') end;
