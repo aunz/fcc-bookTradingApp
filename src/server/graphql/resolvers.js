@@ -46,6 +46,8 @@ export default {
       const uid = authUser(token)
       if (type === 'request') return requestBook(bid, uid)
       if (!rid) throw errInput('rid is required')
+      const book = getBook(bid)
+      if (book.uid !== uid) throw errAuth('You are not the owner of the book ' + bid)
       if (type === 'accept') return actBook(bid, rid, 1)
       if (type === 'decline') return actBook(bid, rid, 0)
       throw errInput('wrong trade type')
