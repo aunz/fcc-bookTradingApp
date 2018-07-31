@@ -73,7 +73,9 @@ export default class extends Component {
                 loading={loading}
                 showError={showError}
                 onClick={() => { this.setState({ showError: false }) }}
-              />
+              >
+                {/unauthori/i.test((error || '').message) && 'The email and/or password combination is incorrect.'}
+              </EL>
             )
             const disabled = !isEmail(email) || pw.length < 3 || (error && showError)
             return (
@@ -106,11 +108,11 @@ export default class extends Component {
 
 export class Signup extends Component {
   state = {
-    name: '123',
-    email: Math.random() + 'test1@test.com',
-    loc: '11', // location
-    pw1: '123',
-    pw2: '123',
+    name: '',
+    email: '',
+    loc: '', // location
+    pw1: '',
+    pw2: '',
     showError: false
   }
   input = e => {
