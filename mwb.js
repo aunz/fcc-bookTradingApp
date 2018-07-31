@@ -119,6 +119,7 @@ function makeRules(target = 'client', args) {
           '@babel/plugin-proposal-throw-expressions',
           '@babel/plugin-proposal-object-rest-spread',
           'babel-plugin-graphql-tag',
+          'transform-react-remove-prop-types',
           ['emotion']
         ],
       }
