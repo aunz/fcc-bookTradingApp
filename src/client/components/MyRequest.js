@@ -52,22 +52,22 @@ export default class MyRequest extends PureComponent {
                         key={book.id}
                         gid={book.gid}
                       >
-                        {d => (
+                        {gbook => (
                           <div className="flex m1 my2">
                             <button
                               className={buttonFlatClass + ' flex justify-center'}
                               style={{ width: '3rem' }}
                               type="button"
-                              onClick={() => { this.setState({ selectedBook: d }) }}
+                              onClick={() => { this.setState({ selectedBook: gbook }) }}
                             >
                               <img
                                 style={{ maxWidth: '3rem', maxHeight: '3rem' }}
-                                src={d.smallThumbnail}
+                                src={gbook.smallThumbnail}
                                 alt=""
                               />
                             </button>
                             <div className="flex flex-column">
-                              <span>{d.title}</span>
+                              <span>{gbook.title}</span>
                               <small className="silver my-auto">Requested on {new Date(book.ts * 1000).toDateString()}</small>
                             </div>
                             <div
