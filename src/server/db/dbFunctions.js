@@ -153,4 +153,3 @@ function createEntity(table, object) {
   const { lastInsertROWID } = db.prepare(stmt).run(object)
   return db.prepare(`select id from "${table}" where rowid = ?`).pluck().get(lastInsertROWID)
 }
-

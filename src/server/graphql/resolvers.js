@@ -93,4 +93,3 @@ function authUser(token) {
   if (!user) throw errAuth()
   return user.id
 }
-

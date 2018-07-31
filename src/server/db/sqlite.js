@@ -1,10 +1,9 @@
 import memoize from 'lodash/memoize'
 
 const db = new (require('better-sqlite3'))(
-  process.env.NODE_ENV === 'production' ?
-    process.env.SQLITE_PATH || './.data/bookTradingApp' :
-    './.data/bookTradingApp__DEV'
-  ,
+  process.env.NODE_ENV === 'production'
+    ? process.env.SQLITE_PATH || './.data/bookTradingApp'
+    : './.data/bookTradingApp__DEV',
   { memory: !!process.env.TEST }
 )
 

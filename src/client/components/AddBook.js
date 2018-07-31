@@ -176,25 +176,7 @@ export class AddBook extends PureComponent {
     client.query({ query: GET_BOOKS, variables: { uid } })
   }
   state = {
-    data: require('~/tmp/google book.json').items.map(el => {
-      const { volumeInfo: v } = el
-      const { imageLinks: { smallThumbnail = '' } = {} } = v
-      const item = {
-        __typename: 'GoogleBook',
-        id: el.id,
-        title: '',
-        authors: [],
-        publisher: '',
-        publishedDate: '',
-        description: '',
-        pageCount: null,
-        categories: [],
-        smallThumbnail,
-        ...v,
-      }
-      return item
-    }),
-    // data: [],
+    data: [],
     loading: false,
     error: null,
     q: '', // query term

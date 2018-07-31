@@ -1,11 +1,8 @@
 {
-  "name": "fcc-votingApp-mwb",
-  "version": "1.0.0",
-  "description": "Voting App, a FreeCodeCamp project",
+  "name": "fcc-book-trading-app-mwb",
+  "version": "0.1.0",
+  "description": "Book Trading App, a FreeCodeCamp project",
   "scripts": {
-    "storybook": "start-storybook -p 6006",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build-storybook": "build-storybook"
   },
   "keywords": [],
   "author": "",

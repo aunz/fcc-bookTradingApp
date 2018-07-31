@@ -51,3 +51,5 @@ UI
 UI
 20180730  4
 myRequest UI, logic, server
+20180731  2
+Refact stuff, clean up for production

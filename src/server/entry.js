@@ -35,4 +35,3 @@ root: ${require('path').resolve()}
 })
 
 export default app
-
