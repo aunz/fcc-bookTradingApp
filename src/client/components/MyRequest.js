@@ -5,8 +5,7 @@ import { Query, Mutation } from 'react-apollo'
 import {
   buttonFlatClass,
   buttonClass,
-  spinner,
-  ErrorButton
+  EL,
 } from './common'
 
 import { userPropTypes } from './User'
@@ -37,11 +36,14 @@ export default class MyRequest extends PureComponent {
           variables={{ id: user.id }}
         >
           {({ data: { getReqs: { reqsByUser, userReqs } = {} }, loading, error }) => {
-            if (error && this.state.showError) return ErrorButton({
-              onClick: () => { this.setState({ showError: false }) },
-              children: 'Oops something went wrong!'
-            })
-            if (loading) return <span className="m1">{spinner}</span>
+            if (loading || (error && this.state.showError)) return (
+              <EL
+                error={error}
+                loading={loading}
+                showError={this.state.showError}
+                onClick={() => { this.setState({ showError: false }) }}
+              />
+            )
             return (
               <Fragment>
                 <div>
@@ -237,26 +239,4 @@ class Trade extends PureComponent {
       </Mutation>
     )
   }
-}
-
-function EL({ loading, error, showError, onClick, children }) { // show Error or Loading
-  if (loading) return <span className="m1">{spinner}</span>
-  if (error && showError) return (
-    <button
-      className={buttonFlatClass + ' red icon-cancel'}
-      onClick={onClick}
-      type="button"
-    >
-      {children || 'Oops something went wrong!'}
-    </button>
-  )
-  return null
-}
-
-EL.propTypes = {
-  onClick: PropTypes.func,
-  children: PropTypes.element,
-  loading: PropTypes.bool,
-  error: PropTypes.object, // eslint-disable-line
-  showError: PropTypes.bool,
 }

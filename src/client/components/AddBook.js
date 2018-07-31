@@ -24,7 +24,7 @@ import {
   buttonFlatClass,
   inputClass,
   spinner,
-  ErrorButton,
+  EL,
 } from './common'
 
 const font = { fontFamily: 'fontello' }
@@ -51,11 +51,14 @@ export default class HomeBook extends PureComponent {
             // fetchPolicy="network-only"
           >
             {({ loading, error, data }) => {
-              if (error && this.state.showError) return ErrorButton({
-                onClick: () => { this.setState({ showError: false }) },
-                children: 'Oops something went wrong!'
-              })
-              if (loading) return <span className="m1">{spinner}</span>
+              if (loading || (error && this.state.showError)) return (
+                <EL
+                  error={error}
+                  loading={loading}
+                  showError={this.state.showError}
+                  onClick={() => { this.setState({ showError: false }) }}
+                />
+              )
               return (data.getBooks || []).map(({ id, gid, bid, uid }) => {
                 return (
                   <GBook
@@ -88,11 +91,14 @@ export default class HomeBook extends PureComponent {
                     variables={{ bid: selectedBid }}
                   >
                     {({ error: error2, loading: loading2, data: data2 }) => {
-                      if (error2 && this.state.showError) return ErrorButton({
-                        onClick: () => { this.setState({ showError: false }) },
-                        children: 'Oops something went wrong!'
-                      })
-                      if (loading2) return <span className="m1">{spinner}</span>
+                      if (loading2 || (error2 && this.state.showError)) return (
+                        <EL
+                          error={error2}
+                          loading={loading2}
+                          showError={this.state.showError}
+                          onClick={() => { this.setState({ showError: false }) }}
+                        />
+                      )
                       const nRequest = (data2.getReqsByBook || []).length
                       const userRequested = nRequest > 0 && data2.getReqsByBook.find(el => el.rid === user.id)
                       return (
@@ -125,11 +131,14 @@ export default class HomeBook extends PureComponent {
                               refetchQueries={() => [{ query: GET_REQS, variables: { id: user.id }, fetchPolicy: 'network-only' }]}
                             >
                               {(mutate, { loading, error }) => {
-                                if (error && this.state.showError) return ErrorButton({
-                                  onClick: () => { this.setState({ showError: false }) },
-                                  children: 'Oops something went wrong!'
-                                })
-                                if (loading) return <span className="m2 self-center">{spinner}</span>
+                                if (loading || (error && this.state.showError)) return (
+                                  <EL
+                                    error={error}
+                                    loading={loading}
+                                    showError={this.state.showError}
+                                    onClick={() => { this.setState({ showError: false }) }}
+                                  />
+                                )
                                 return (
                                   <button
                                     className={buttonClass + ' m2 self-center'}
@@ -242,10 +251,13 @@ export class AddBook extends PureComponent {
             />
           )}
         </div>
-        {error && this.state.showError && ErrorButton({
-          onClick: () => { this.setState({ showError: false }) },
-          children: 'Oops something went wrong!'
-        })}
+        {error && this.state.showError && (
+          <EL
+            error={error}
+            showError={this.state.showError}
+            onClick={() => { this.setState({ showError: false }) }}
+          />
+        )}
         <div className="m2 flex flex-wrap">
           {data.map(d => (
             <BookThumb
@@ -405,10 +417,13 @@ const AddToMyBook = withRouter(class AddToMyBook extends PureComponent {
         }}
       >
         {(mutate, { loading, error }) => {
-          if (error && this.state.showError) return ErrorButton({
-            onClick: () => { this.setState({ showError: false }) },
-            children: 'Oops something went wrong!'
-          })
+          if (error && this.state.showError) return (
+            <EL
+              error={error}
+              showError={this.state.showError}
+              onClick={() => { this.setState({ showError: false }) }}
+            />
+          )
           if (loading) return <span className="m2 self-center">{spinner}</span>
           return (
             <button
@@ -453,11 +468,14 @@ export class MyBook extends PureComponent {
             // fetchPolicy="network-only"
           >
             {({ loading, error, data }) => {
-              if (error && this.state.showError) return ErrorButton({
-                onClick: () => { this.setState({ showError: false }) },
-                children: 'Oops something went wrong!'
-              })
-              if (loading) return <span className="m1">{spinner}</span>
+              if (loading || (error && this.state.showError)) return (
+                <EL
+                  error={error}
+                  loading={loading}
+                  showError={this.state.showError}
+                  onClick={() => { this.setState({ showError: false }) }}
+                />
+              )
               return (data.getBooks || []).map(({ id, gid, bid }) => {
                 return (
                   <GBook
@@ -493,10 +511,13 @@ export class MyBook extends PureComponent {
                   }}
                 >
                   {(mutate, { loading, error }) => {
-                    if (error && this.state.showError) return ErrorButton({
-                      onClick: () => { this.setState({ showError: false }) },
-                      children: 'Oops something went wrong!'
-                    })
+                    if (error && this.state.showError) return (
+                      <EL
+                        error={error}
+                        showError={this.state.showError}
+                        onClick={() => { this.setState({ showError: false }) }}
+                      />
+                    )
                     if (loading) return <span className="m2 self-center">{spinner}</span>
                     return (
                       <button
@@ -540,10 +561,11 @@ export class GBook extends PureComponent {
         {({ data, loading, error }) => {
           if (error && this.state.showError) return (
             <div className={thumbClass}>
-              {ErrorButton({
-                onClick: () => { this.setState({ showError: false }) },
-                children: 'Oops something went wrong!'
-              })}
+              <EL
+                error={error}
+                showError={this.state.showError}
+                onClick={() => { this.setState({ showError: false }) }}
+              />
             </div>
           )
           const { render, children, selectCB } = this.props

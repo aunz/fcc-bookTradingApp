@@ -13,8 +13,7 @@ import client, {
 import {
   inputClass,
   buttonClass,
-  spinner,
-  ErrorButton
+  EL
 } from './common'
 
 const inputClass2 = inputClass + 'm1'
@@ -68,13 +67,14 @@ export default class extends Component {
           }}
         >
           {(mutate, { loading, error }) => {
-            if (error && showError) return ErrorButton({
-              onClick: () => { this.setState({ showError: false }) },
-              children: /unauthorized/i.test(error.message)
-                ? 'The email and password combination is incorrect'
-                : 'Oops something went wrong!'
-            })
-            if (loading) return spinner
+            if (loading || (error && showError)) return (
+              <EL
+                error={error}
+                loading={loading}
+                showError={showError}
+                onClick={() => { this.setState({ showError: false }) }}
+              />
+            )
             const disabled = !isEmail(email) || pw.length < 3 || (error && showError)
             return (
               <input
@@ -169,13 +169,14 @@ export class Signup extends Component {
         >
           {(mutate, { loading, error }) => {
             const { name, email, loc, pw1, pw2, showError } = this.state
-            if (error && showError) return ErrorButton({
-              onClick: () => { this.setState({ showError: false }) },
-              children: /email/i.test(error.message)
-                ? 'The email is invalid or has been registered!'
-                : 'Oops something went wrong!'
-            })
-            if (loading) return spinner
+            if (loading || (error && showError)) return (
+              <EL
+                error={error}
+                loading={loading}
+                showError={showError}
+                onClick={() => { this.setState({ showError: false }) }}
+              />
+            )
             return (
               <input
                 type="submit"

@@ -15,8 +15,7 @@ import {
   buttonClass,
   buttonFlatClass,
   inputClass,
-  spinner,
-  ErrorButton
+  EL,
 } from './common'
 
 export const userPropTypes = {
@@ -46,6 +45,7 @@ export default class User extends PureComponent {
         <button
           className={buttonClass}
           onClick={this.logout}
+          type="button"
         >
           Log out
         </button>
@@ -99,30 +99,35 @@ class UserField extends PureComponent {
             this.setState({ editMode: true, showError: false })
           }}
         />
-        <Mutation
-          mutation={UPDATE_DETAIL}
-        >
+        <Mutation mutation={UPDATE_DETAIL}>
           {(mutate, { loading, error }) => {
-            const trimmedValue = value.trim()
             return (
               <div className="flex items-start mb2">
                 <button
                   onClick={this.toggleEdit}
                   className={buttonFlatClass + ' m1'}
                   disabled={loading}
+                  type="button"
                 >
                   {editMode && 'Cancel'}
                 </button>
-                {editMode ?
-                  error && this.state.showError ? ErrorButton({
-                    onClick: () => { this.setState({ showError: false }) },
-                    children: /email/i.test(error.message) ?
-                      'The email is invalid or has been registered!' :
-                      'Oops something went wrong!'
-                  }) :
-                  loading ? spinner : (
+                {(() => {
+                  if (!editMode) return null
+                  if (loading || (error && this.state.showError)) return (
+                    <EL
+                      error={error}
+                      loading={loading}
+                      showError={this.state.showError}
+                      onClick={() => { this.setState({ showError: false }) }}
+                    >
+                      {/email/i.test((error || '').message) && 'The email is invalid or has been registered!'}
+                    </EL>
+                  )
+                  const trimmedValue = value.trim()
+                  return (
                     <button
                       className={buttonFlatClass + ' mt1 ml2 color1'}
+                      type="button"
                       disabled={!trimmedValue || trimmedValue === this.user[this.props.name] || (name === 'email' && !isEmail(trimmedValue))}
                       onClick={() => {
                         this.setState({ showError: true })
@@ -137,7 +142,7 @@ class UserField extends PureComponent {
                       Update
                     </button>
                   )
-                 : null }
+                })()}
               </div>
             )
           }}
@@ -146,4 +151,3 @@ class UserField extends PureComponent {
     )
   }
 }
-

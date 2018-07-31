@@ -21,19 +21,24 @@ export const buttonFlatClass = ' bg-transparent outline-none border-none pointer
 export const spinner = <i className="self-center icon-spin6 animate-spin color1" />
 
 
-export function ErrorButton(props) {
-  return (
+export function EL({ loading, error, showError, onClick, children }) { // show Error or Loading
+  if (loading) return <span className="m1">{spinner}</span>
+  if (error && showError) return (
     <button
       className={buttonFlatClass + ' red icon-cancel'}
-      onClick={props.onClick}
+      onClick={onClick}
       type="button"
     >
-      {props.children}
+      {children || 'Oops something went wrong!'}
     </button>
   )
+  return null
 }
 
-ErrorButton.propTypes = {
+EL.propTypes = {
   onClick: PropTypes.func,
-  children: PropTypes.element
+  children: PropTypes.node,
+  loading: PropTypes.bool,
+  error: PropTypes.object, // eslint-disable-line
+  showError: PropTypes.bool,
 }
