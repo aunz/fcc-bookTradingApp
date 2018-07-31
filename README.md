@@ -12,6 +12,7 @@ Client
 Server
 - Express
 - Apollo express
+- Bcrypt for password
 
 Database
 - Sqlite3
@@ -21,6 +22,6 @@ Build tool
 - Webpack
 - PostCSS
 
+Google Book API
 
-
-### My random scribbles
+Total time taken to read and build: 70 hours, spread across 2 months (was on holiday).
