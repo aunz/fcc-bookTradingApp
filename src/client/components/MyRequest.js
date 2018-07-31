@@ -1,4 +1,5 @@
 import React, { PureComponent, Fragment } from 'react'
+import PropTypes from 'prop-types'
 import { Query, Mutation } from 'react-apollo'
 
 import {
@@ -102,8 +103,12 @@ export default class MyRequest extends PureComponent {
                               })
                               if (loading2) return <span className="m1">{spinner}</span>
 
-                              const base = (
-                                <Fragment>
+                              const status = book.status === null
+                                ? <Trade user={user} book={book} />
+                                : <div className="my-auto">You {book.status ? 'accepted' : 'declined'} this trade</div>
+
+                              return (
+                                <div className="flex m1 my2">
                                   <button
                                     className={buttonFlatClass + ' flex justify-center'}
                                     style={{ width: '3rem' }}
@@ -121,66 +126,12 @@ export default class MyRequest extends PureComponent {
                                     <small className="silver my-auto">Requested on {new Date(book.ts * 1000).toDateString()}</small>
                                   </div>
                                   <div
-                                    className="flex flex-column mr1 px1 center "
+                                    className="flex flex-column mx1 px1 center "
                                     style={{ borderLeft: '1px solid silver', borderRight: '1px solid silver' }}
                                   >
                                     <span>Requested by</span>
                                     <span className="my-auto">{getUserDetail && getUserDetail.name}</span>
                                   </div>
-                                </Fragment>
-                              )
-
-                              const status = book.status !== null
-                                ? <div className="my-auto">You {book.status ? 'accepted' : 'declined'} this trade</div>
-                                : (
-                                  <Fragment>
-                                    <Mutation
-                                      mutation={TRADE_BOOK}
-                                      refetchQueries={() => [
-                                        { query: GET_REQS, variables: { id: user.id } },
-                                        { query: GET_BOOKS }, // not very efficient, but needed for now
-                                        { query: GET_BOOKS, variables: { uid: user.id } }
-                                      ]}
-                                    >
-                                      {(mutate, { loading: loading3, error: error3 }) => {
-                                        if (error3 && this.state.showError) return ErrorButton({
-                                          onClick: () => { this.setState({ showError: false }) },
-                                          children: 'Oops something went wrong!'
-                                        })
-                                        if (loading3) return <span className="m1">{spinner}</span>
-                                        const variables = { token: user.token, bid: book.bid, rid: book.rid }
-                                        const className = buttonClass + ' mx1 '
-                                        return (
-                                          <Fragment>
-                                            <button
-                                              className={className}
-                                              type="button"
-                                              onClick={() => {
-                                                variables.type = 'accept'
-                                                mutate({ variables })
-                                              }}
-                                            >
-                                              Accept
-                                            </button>
-                                            <button
-                                              className={className + ' border-red '}
-                                              type="button"
-                                              onClick={() => {
-                                                variables.type = 'decline'
-                                                mutate({ variables })
-                                              }}
-                                            >
-                                              Decline
-                                            </button>
-                                          </Fragment>
-                                        )
-                                      }}
-                                    </Mutation>
-                                  </Fragment>
-                                )
-                              return (
-                                <div className="flex m1 my2">
-                                  {base}
                                   {status}
                                 </div>
                               )
@@ -203,6 +154,63 @@ export default class MyRequest extends PureComponent {
           />
         )}
       </div>
+    )
+  }
+}
+
+class Trade extends PureComponent {
+  static propTypes = {
+    user: PropTypes.object, // eslint-disable-line
+    book: PropTypes.object, // eslint-disable-line
+  }
+  state = {
+    showError: true
+  }
+  render() {
+    const { user, book } = this.props
+    return (
+      <Mutation
+        mutation={TRADE_BOOK}
+        refetchQueries={() => [
+          { query: GET_REQS, variables: { id: user.id } },
+          { query: GET_BOOKS }, // not very efficient, but needed for now
+          { query: GET_BOOKS, variables: { uid: user.id } }
+        ]}
+      >
+        {(mutate, { loading, error }) => {
+          if (error && this.state.showError) return ErrorButton({
+            onClick: () => { this.setState({ showError: false }) },
+            children: 'Oops something went wrong!'
+          })
+          if (loading) return <span className="m1">{spinner}</span>
+          const className = buttonClass + ' mx1 '
+          const variables = { token: user.token, bid: book.bid, rid: book.rid }
+          return (
+            <Fragment>
+              <button
+                className={className}
+                type="button"
+                onClick={() => {
+                  variables.type = 'accept'
+                  mutate({ variables })
+                }}
+              >
+                Accept
+              </button>
+              <button
+                className={className + ' border-red '}
+                type="button"
+                onClick={() => {
+                  variables.type = 'decline'
+                  mutate({ variables })
+                }}
+              >
+                Decline
+              </button>
+            </Fragment>
+          )
+        }}
+      </Mutation>
     )
   }
 }
